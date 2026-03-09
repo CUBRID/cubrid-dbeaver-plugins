@@ -1,0 +1,2 @@
+#cubrid-dbeaver-external
+preparing
