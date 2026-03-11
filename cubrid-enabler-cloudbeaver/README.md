@@ -3,10 +3,10 @@
 cubrid-enabler-cloudbeaver enables the [CUBRID](https://cubrid.org) Driver, which is not enabled by default when using [CloudBeaver Community](https://github.com/dbeaver/cloudbeaver).
 
 ## Installation
-1. Install the Cloudbeaver container via [Docker hub](https://hub.docker.com/r/dbeaver/cloudbeaver).  
-Refer to the [Cloudbeaver wiki](https://github.com/dbeaver/cloudbeaver/wiki/CloudBeaver-Community-deployment-from-docker-image) for installation instructions.
+1. Install the CloudBeaver container via [Docker Hub](https://hub.docker.com/r/dbeaver/cloudbeaver).
+Refer to the [CloudBeaver wiki](https://github.com/dbeaver/cloudbeaver/wiki/CloudBeaver-Community-deployment-from-docker-image) for installation instructions.
 
-2. Copy the shell file (`cubrid-enabler.sh`) to the Cloudbeaver installation folder (`/opt/cloudbeaver`) in the container.
+2. Copy the shell file (`cubrid-enabler.sh`) to the CloudBeaver installation folder (`/opt/cloudbeaver`) in the container.
 3. Execute the shell file in the installation folder (`/opt/cloudbeaver`).
 ```
 ./cubrid-enabler.sh
@@ -47,7 +47,7 @@ docker cp c:\cubrid-enabler.sh (my-container-name):(path)
 ### Build
 - Build
 ```
-./build-enbler.sh
+./build-enabler.sh
 ```
 - Output Folder  
 dist/cubrid-enabler.sh

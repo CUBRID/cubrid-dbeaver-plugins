@@ -67,12 +67,12 @@ else
 fi
 
 # ============================================================
-# Generate Linux Distribution (Patch File)
+# Cloudbeaver Build
 # ============================================================
 
-#Clone Cloudbeaver
+#Clone CloudBeaver
 if [ -d "$BUILD_FOLDER" ]; then
-  echo "Cloudbeaver repository already exists."
+  echo "CloudBeaver repository already exists."
   rm -rf "$BUILD_FOLDER"
 fi
 mkdir -p "$BUILD_FOLDER"
@@ -119,7 +119,7 @@ sed -i '/<resource name="drivers\/databend"\/>/a \        <resource name="driver
 sed -i '/<bundle id="drivers.databend" label="Databend drivers"\/>/a \        <bundle id="drivers.cubrid" label="CUBRID drivers"/>' "$PLUGIN_XML"
 sed -i '/<driver id="databend:databend"\/>/a \        <driver id="cubrid:cubrid_jdbc"/>' "$PLUGIN_XML"
 
-#Build Cloudbeaver
+#Build CloudBeaver
 chmod +x "$BUILD_SCRIPT"
 (
   cd "$(dirname "$BUILD_SCRIPT")"
@@ -136,7 +136,7 @@ fi
 echo "Using built bundle: $FOUND_FILE"
 
 # ============================================================
-# Generate Windows Distribution (Patch File)
+# Generate Linux Distribution (Patch File)
 # ============================================================
 mkdir -p "$DIST_DIR"
 # Create Cubrid Patch file for Linux
@@ -158,7 +158,7 @@ fi
 
 BASE_PATH="${ROOT_PATH}/drivers/cubrid"
 SEARCH_PATH="${ROOT_PATH}/server/plugins"
-JDBC_FILE_NAME="cubrid-jdbc-${CUBRID_VERSION}.jar"
+JDBC_FILE_NAME="cubrid-jdbc-__CUBRID_VERSION__.jar"
 FILE_PATTERN="io.cloudbeaver.resources.drivers.base_*.jar"
 
 # Function
@@ -202,6 +202,9 @@ echo "(Required) Please restart the CloudBeaver container to enable CUBRID."
 exit 0
 EOF_LIN
 
+# Replace version placeholder
+sed -i "s/__CUBRID_VERSION__/${CUBRID_VERSION}/g" "$CUBRID_PACKAGE_LINUX"
+
 # Append embedded JDBC jar
 echo "__CUBRID_JDBC_JAR__" >> "$CUBRID_PACKAGE_LINUX"
 base64 "$JDBC_JAR" >> "$CUBRID_PACKAGE_LINUX"
@@ -233,7 +236,7 @@ REM Variable
 set "SCRIPT_DIR=%~dp0"
 set "BASE_PATH=%SCRIPT_DIR%drivers\cubrid"
 set "SEARCH_PATH=%SCRIPT_DIR%server\plugins"
-set "JDBC_FILE_NAME=cubrid-jdbc-${CUBRID_VERSION}.jar"
+set "JDBC_FILE_NAME=cubrid-jdbc-__CUBRID_VERSION__.jar"
 set "FILE_PATTERN=io.cloudbeaver.resources.drivers.base_*.jar"
 
 REM Create driver directory
@@ -250,7 +253,7 @@ echo CUBRID JDBC driver extracted
 REM Find and replace CloudBeaver bundle
 set "FOUND_FILE="
 
-for /r "%SEARCH_PATH%" %%F in ("%FILE_PATTERN%") do (
+for /r "%SEARCH_PATH%" %%F in (%FILE_PATTERN%) do (
     set "FOUND_FILE=%%F"
 )
 
@@ -277,6 +280,9 @@ exit /b 0
 
 REM Embedded files (base64)
 EOF_WIN
+
+# Replace version placeholder
+sed -i "s/__CUBRID_VERSION__/${CUBRID_VERSION}/g" "$CUBRID_PACKAGE_WINDOW"
 
 # Append embedded JDBC jar
 echo "__CUBRID_JDBC_JAR__" >> "$CUBRID_PACKAGE_WINDOW"
