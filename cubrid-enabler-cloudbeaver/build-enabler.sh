@@ -88,7 +88,10 @@ mkdir -p "$DOWNLOAD_LIB_DIR"
 echo "Downloading CUBRID JDBC driver (latest)..."
 (
   cd "$DOWNLOAD_LIB_DIR"
-  mvn dependency:copy -Dartifact=org.cubrid:cubrid-jdbc:LATEST -DoutputDirectory=. -q
+  if ! mvn dependency:copy -Dartifact=org.cubrid:cubrid-jdbc:LATEST -DoutputDirectory=. -q; then
+    echo "ERROR: Failed to download CUBRID JDBC driver via Maven."
+    exit 1
+  fi
 )
 JDBC_JAR=$(find "$DOWNLOAD_LIB_DIR" -name "cubrid-jdbc-*.jar" | head -n 1)
 if [[ -z "$JDBC_JAR" ]]; then
@@ -116,8 +119,22 @@ sed -i '/<modules>/a \        <module>cubrid</module>' "$DRIVER_INPUT_PATH/pom.x
 echo "modify global bundle plugin.xml"
 PLUGIN_XML="$BUNDLE_INPUT_PATH/plugin.xml"
 sed -i '/<resource name="drivers\/databend"\/>/a \        <resource name="drivers/cubrid"/>' "$PLUGIN_XML"
+if ! grep -q 'name="drivers/cubrid"' "$PLUGIN_XML"; then
+  echo "ERROR: CUBRID resource entry was not inserted into plugin.xml. Check the anchor pattern."
+  exit 1
+fi
+
 sed -i '/<bundle id="drivers.databend" label="Databend drivers"\/>/a \        <bundle id="drivers.cubrid" label="CUBRID drivers"/>' "$PLUGIN_XML"
+if ! grep -q 'id="drivers.cubrid"' "$PLUGIN_XML"; then
+  echo "ERROR: CUBRID bundle entry was not inserted into plugin.xml. Check the anchor pattern."
+  exit 1
+fi
+
 sed -i '/<driver id="databend:databend"\/>/a \        <driver id="cubrid:cubrid_jdbc"/>' "$PLUGIN_XML"
+if ! grep -q 'id="cubrid:cubrid_jdbc"' "$PLUGIN_XML"; then
+  echo "ERROR: CUBRID driver entry was not inserted into plugin.xml. Check the anchor pattern."
+  exit 1
+fi
 
 #Build CloudBeaver
 chmod +x "$BUILD_SCRIPT"
@@ -144,6 +161,7 @@ echo "Generating $CUBRID_PACKAGE_LINUX..."
 
 cat > "$CUBRID_PACKAGE_LINUX" << 'EOF_LIN'
 #!/bin/bash
+# Build Version of Cloudbeaver: __CLOUDBEAVER_VERSION__
 set -e
 
 # Variable
@@ -204,6 +222,7 @@ EOF_LIN
 
 # Replace version placeholder
 sed -i "s/__CUBRID_VERSION__/${CUBRID_VERSION}/g" "$CUBRID_PACKAGE_LINUX"
+sed -i "s/__CLOUDBEAVER_VERSION__/${CLOUDBEAVER_VERSION}/g" "$CUBRID_PACKAGE_LINUX"
 
 # Append embedded JDBC jar
 echo "__CUBRID_JDBC_JAR__" >> "$CUBRID_PACKAGE_LINUX"
@@ -217,7 +236,7 @@ echo "__END_DRIVERS_BASE_JAR__" >> "$CUBRID_PACKAGE_LINUX"
 
 chmod +x "$CUBRID_PACKAGE_LINUX"
 echo "✅ Patch cubrid-package.sh generated with embedded jars"
-
+exit 0
 
 # ============================================================
 # Generate patch file for Window (Patch File)
@@ -227,10 +246,12 @@ echo "Generating $CUBRID_PACKAGE_WINDOW..."
 cat > "$CUBRID_PACKAGE_WINDOW" << 'EOF_WIN'
 @echo off
 setlocal enabledelayedexpansion
+REM Cloudbeaver Version: __CLOUDBEAVER_VERSION__
 
 set TIMESTAMP=%DATE%-%TIME%
 set TIMESTAMP=%TIMESTAMP::=%
 set TIMESTAMP=%TIMESTAMP:.=%
+set TIMESTAMP=%TIMESTAMP: =%
 
 REM Variable
 set "SCRIPT_DIR=%~dp0"
@@ -283,6 +304,7 @@ EOF_WIN
 
 # Replace version placeholder
 sed -i "s/__CUBRID_VERSION__/${CUBRID_VERSION}/g" "$CUBRID_PACKAGE_WINDOW"
+sed -i "s/__CLOUDBEAVER_VERSION__/${CLOUDBEAVER_VERSION}/g" "$CUBRID_PACKAGE_WINDOW"
 
 # Append embedded JDBC jar
 echo "__CUBRID_JDBC_JAR__" >> "$CUBRID_PACKAGE_WINDOW"

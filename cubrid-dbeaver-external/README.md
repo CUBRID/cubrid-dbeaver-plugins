@@ -1,2 +1,2 @@
-#cubrid-dbeaver-external
+# cubrid-dbeaver-external
 preparing
