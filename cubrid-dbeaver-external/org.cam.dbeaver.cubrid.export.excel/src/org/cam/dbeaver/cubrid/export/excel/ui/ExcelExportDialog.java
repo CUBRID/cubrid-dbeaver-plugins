@@ -114,6 +114,7 @@ public class ExcelExportDialog extends BaseDialog {
         }
         boldFont = new Font(container.getDisplay(), fD);
         title.setFont(boldFont);
+        title.addDisposeListener(e -> boldFont.dispose());
 
         Label desc = new Label(container, SWT.NONE);
         desc.setText("Select export path");
