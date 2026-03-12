@@ -50,7 +50,9 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
     @Override
     public void generateTableDetailSheets(CubridTable table) {
     	String tableName = table.getSchema() + "." + table.getName();
-    	Sheet tableSheet = getWorkbook().createSheet(tableName);
+    	String tableName = table.getSchema() + "." + table.getName();
+    	String sheetName = tableName.length() > 31 ? tableName.substring(0, 31) : tableName;
+    	Sheet tableSheet = getWorkbook().createSheet(sheetName);
 		applySheetDimensions(tableSheet, 18, 20, 13, 9, 9, 9, 10, 29);
 
     	// === Row 1 ===
