@@ -80,12 +80,26 @@ public class ExcelExportDialog extends BaseDialog {
 
             MessageDialog.openInformation(getShell(), "Success", "Excel file created:\n" + fullPath);
 
+        try {
+            progressDialog.run(true, false, (IRunnableWithProgress) monitor -> {
+                monitor.beginTask("Generating Excel file...", IProgressMonitor.UNKNOWN);
+            	if (selectedStyle == DocumentStyle.GENERIC) {
+            		ExcelGenericStyle generic = new ExcelGenericStyle(fullPath, dataSource);
+            		generic.generateExcel();
+            	} else {
+            		ExcelSimpleStyle simple = new ExcelSimpleStyle(fullPath, dataSource);
+            		simple.generateExcel();
+            	}
+                monitor.done();
+            });
+
+            MessageDialog.openInformation(getShell(), "Success", "Excel file created:\n" + fullPath);
+            super.okPressed();
+
         } catch (Exception e) {
             e.printStackTrace();
             MessageDialog.openError(getShell(), "Error", "Failed to generate Excel.");
         }
-
-        super.okPressed();
     }
 
     @Override
