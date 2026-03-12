@@ -24,7 +24,9 @@ public class ExcelExportHandler extends AbstractHandler {
         if (node instanceof DBNDataSource dataSourceNode) {
             DataSourceDescriptor descriptor = (DataSourceDescriptor) dataSourceNode.getDataSourceContainer();
             DBPDataSource dataSource = descriptor.getDataSource();
-            CubridDataSource cubrid = (CubridDataSource) dataSource;
+            if (!(dataSource instanceof CubridDataSource cubrid)) {
+                return null;
+            }
             try {
                 ExcelExportDialog dialog = new ExcelExportDialog(activeShell, cubrid);
                 dialog.open();
