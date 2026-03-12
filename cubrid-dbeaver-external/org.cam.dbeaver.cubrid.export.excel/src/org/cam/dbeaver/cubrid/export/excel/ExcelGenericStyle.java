@@ -51,9 +51,9 @@ public class ExcelGenericStyle extends ExcelMainStyle {
     }
 
     @Override
-    public void generateTableDetailSheets(CubridTable table) {
     	String tableName = table.getSchema() + "." + table.getName();
-    	Sheet tableSheet = getWorkbook().createSheet(tableName);
+    	String sheetName = tableName.length() > 31 ? tableName.substring(0, 31) : tableName;
+    	Sheet tableSheet = getWorkbook().createSheet(sheetName);
 		applySheetDimensions(tableSheet, 18, 20, 13, 13, 11, 11, 11, 20);
 
     	// === Row 1 ===
