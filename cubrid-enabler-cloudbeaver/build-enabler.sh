@@ -2,6 +2,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+ENABLER_VERSION="v1.0.0-$(date +%Y%m%d%H%M)"
 BUILD_FOLDER="$SCRIPT_DIR/build"
 
 # CloudBeaver paths
@@ -162,6 +163,7 @@ echo "Generating $CUBRID_PACKAGE_LINUX..."
 cat > "$CUBRID_PACKAGE_LINUX" << 'EOF_LIN'
 #!/bin/bash
 # Build Version of Cloudbeaver: __CLOUDBEAVER_VERSION__
+# Enabler Version: __ENABLER_VERSION__
 set -e
 
 # Variable
@@ -223,6 +225,7 @@ EOF_LIN
 # Replace version placeholder
 sed -i "s/__CUBRID_VERSION__/${CUBRID_VERSION}/g" "$CUBRID_PACKAGE_LINUX"
 sed -i "s/__CLOUDBEAVER_VERSION__/${CLOUDBEAVER_VERSION}/g" "$CUBRID_PACKAGE_LINUX"
+sed -i "s/__ENABLER_VERSION__/${ENABLER_VERSION}/g" "$CUBRID_PACKAGE_LINUX"
 
 # Append embedded JDBC jar
 echo "__CUBRID_JDBC_JAR__" >> "$CUBRID_PACKAGE_LINUX"
@@ -239,13 +242,14 @@ echo "✅ Patch cubrid-package.sh generated with embedded jars"
 exit 0
 
 # ============================================================
-# Generate patch file for Window (Patch File)
+# Generate patch file for Window (Patch File) -- Not Release
 # ============================================================
 echo "Generating $CUBRID_PACKAGE_WINDOW..."
 # Write the batch script logic
 cat > "$CUBRID_PACKAGE_WINDOW" << 'EOF_WIN'
 @echo off
 setlocal enabledelayedexpansion
+REM Enabler Version: __ENABLER_VERSION__
 REM Cloudbeaver Version: __CLOUDBEAVER_VERSION__
 
 set TIMESTAMP=%DATE%-%TIME%
@@ -305,6 +309,7 @@ EOF_WIN
 # Replace version placeholder
 sed -i "s/__CUBRID_VERSION__/${CUBRID_VERSION}/g" "$CUBRID_PACKAGE_WINDOW"
 sed -i "s/__CLOUDBEAVER_VERSION__/${CLOUDBEAVER_VERSION}/g" "$CUBRID_PACKAGE_WINDOW"
+sed -i "s/__ENABLER_VERSION__/${ENABLER_VERSION}/g" "$CUBRID_PACKAGE_WINDOW"
 
 # Append embedded JDBC jar
 echo "__CUBRID_JDBC_JAR__" >> "$CUBRID_PACKAGE_WINDOW"
