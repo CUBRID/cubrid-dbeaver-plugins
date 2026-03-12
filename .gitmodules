@@ -1,0 +1,3 @@
+[submodule "dbeaver"]
+	path = dbeaver
+	url = https://github.com/dbeaver/dbeaver.git

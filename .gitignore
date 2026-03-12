@@ -1,2 +1,5 @@
 cubrid-enabler-cloudbeaver/build
 cubrid-enabler-cloudbeaver/dist
+.DS_Store
+target/
+bin/
