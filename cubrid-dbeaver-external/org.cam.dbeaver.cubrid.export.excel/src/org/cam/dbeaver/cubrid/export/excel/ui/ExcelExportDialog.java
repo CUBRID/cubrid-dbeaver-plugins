@@ -133,11 +133,8 @@ public class ExcelExportDialog extends BaseDialog {
         Label lblName = new Label(inputArea, SWT.NONE);
         lblName.setText("Excel name :");
 
-        String databaseName = "demodb"; // or get it dynamically
+        String databaseName = dataSource.getName();
         String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-
-        txtName = new Text(inputArea, SWT.BORDER);
-        txtName.setText("tablelist_" + databaseName + "_" + currentDate);
         GridData gdName = new GridData(SWT.FILL, SWT.CENTER, true, false);
         txtName.setLayoutData(gdName);
         
