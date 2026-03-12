@@ -22,7 +22,9 @@ public class ExcelExportHandler extends AbstractHandler {
         final ISelection selection = HandlerUtil.getCurrentSelection(event);
         final DBNNode node = NavigatorUtils.getSelectedNode(selection);
         if (node instanceof DBNDataSource dataSourceNode) {
-            DataSourceDescriptor descriptor = (DataSourceDescriptor) dataSourceNode.getDataSourceContainer();
+            if (!(dataSourceNode.getDataSourceContainer() instanceof DataSourceDescriptor descriptor)) {
+                return null;
+            }
             DBPDataSource dataSource = descriptor.getDataSource();
             if (!(dataSource instanceof CubridDataSource cubrid)) {
                 return null;
