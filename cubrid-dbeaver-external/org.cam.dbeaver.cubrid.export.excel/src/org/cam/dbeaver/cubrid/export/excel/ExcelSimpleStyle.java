@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.util.WorkbookUtil;
 import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher;
 import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher.IndexColumn;
 import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher.IndexKey;
@@ -11,11 +12,12 @@ import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTableColumn;
+import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
 public class ExcelSimpleStyle extends ExcelMainStyle {
 
-    public ExcelSimpleStyle(String filePath, CubridDataSource dataSource) {
-        super(filePath, dataSource);
+    public ExcelSimpleStyle(DBRProgressMonitor monitor, CubridDataSource dataSource, String filePath) {
+        super(monitor, dataSource, filePath);
     }
 
     @Override
@@ -42,7 +44,7 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
 
         // === Row 4 to End ===
         int rowIndex = 3;
-        for (CubridTable table : TableDefinitionFetcher.getTables(getDataSource())) {
+        for (CubridTable table : tables) {
             String tableName = table.getSchema() + "." + table.getName();
             addCell(sheet, rowIndex, 0, tableName, getLeftStyle());
             addCell(sheet, rowIndex, 1, table.getDescription(), getLeftStyle());
@@ -55,7 +57,8 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
     public void generateTableDetailSheets(CubridTable table) throws DBException {
         String tableName = table.getSchema() + "." + table.getName();
         String sheetName = tableName.length() > 31 ? tableName.substring(0, 31) : tableName;
-        Sheet tableSheet = getWorkbook().createSheet(sheetName);
+        String safeName = WorkbookUtil.createSafeSheetName(sheetName);
+        Sheet tableSheet = getWorkbook().createSheet(safeName);
         applySheetDimensions(tableSheet, 18, 20, 13, 9, 9, 9, 10, 29);
 
         // === Row 1 ===
@@ -93,8 +96,8 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
         addCell(tableSheet, 4, 7, "Description", getBoldStyle());
 
         int rowIndex = 5;
-        Set<String> pkColumnNames = TableDefinitionFetcher.getPrimaryKeyColumnNames(table);
-        for (CubridTableColumn column : TableDefinitionFetcher.getColumns(table)) {
+        Set<String> pkColumnNames = TableDefinitionFetcher.getPrimaryKeyColumnNames(getMonitor(), table);
+        for (CubridTableColumn column : TableDefinitionFetcher.getColumns(getMonitor(), table)) {
             String isNull = column.isRequired() ? "" : "Y";
             String isFK = column.isForeignKey() ? "Y" : "";
             String isPK = pkColumnNames.contains(column.getName()) ? "Y" : "";
@@ -131,7 +134,7 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
         mergeCell(tableSheet, rowIndex, rowIndex, 6, 7);
 
         int indexNo = 1;
-        for (IndexKey index : TableDefinitionFetcher.getIndexes(table)) {
+        for (IndexKey index : TableDefinitionFetcher.getIndexes(getMonitor(), table)) {
             int numColumns = index.getColumns().size();
             int startRow = rowIndex + 1;
 
@@ -146,10 +149,10 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
                 }
                 addCell(tableSheet, rowIndex, 1, (i == 0 ? index.getIndexName() : ""), getLeftStyle());
                 addCell(tableSheet, rowIndex, 3, indexColumn.getColumnName(), getLeftStyle());
-                addCell(tableSheet, rowIndex, 5, indexColumn.getOrdering(), getCenterStyle());
+                addCell(tableSheet, rowIndex, 5, indexColumn.getKeyPosition(), getCenterStyle());
                 addCell(tableSheet, rowIndex, 6, "", getCenterStyle());
                 mergeCell(tableSheet, rowIndex, rowIndex, 3, 4);
-               mergeCell(tableSheet, rowIndex, rowIndex, 6, 7);
+                mergeCell(tableSheet, rowIndex, rowIndex, 6, 7);
             }
             int endRow = rowIndex;
             if (numColumns > 1) {
@@ -172,7 +175,7 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
         mergeCell(tableSheet, rowIndex, rowIndex, 0, 7);
         rowIndex++;
 
-        String ddl = TableDefinitionFetcher.getDDL(table);
+        String ddl = TableDefinitionFetcher.getDDL(getMonitor(), table);
         addCell(tableSheet, rowIndex, 0, ddl, getLeftStyle());
         mergeCell(tableSheet, rowIndex, rowIndex, 0, 7);
 

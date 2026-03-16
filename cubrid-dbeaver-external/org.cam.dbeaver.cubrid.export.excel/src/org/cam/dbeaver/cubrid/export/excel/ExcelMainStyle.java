@@ -24,6 +24,7 @@ import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
+import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
 public abstract class ExcelMainStyle {
     private final Workbook workbook;
@@ -31,13 +32,15 @@ public abstract class ExcelMainStyle {
     private final CellStyle leftStyle;
     private final CellStyle rightStyle;
     private final CellStyle boldStyle;
-    private CubridDataSource dataSource;
-    private String dateString;
-    private String filePath;
+    private final CubridDataSource dataSource;
+    private final DBRProgressMonitor monitor;
+    private final String dateString;
+    private final String filePath;
 
-    public ExcelMainStyle(String filePath, CubridDataSource dataSource) {
-        this.filePath = filePath;
+    public ExcelMainStyle(DBRProgressMonitor monitor, CubridDataSource dataSource, String filePath) {
+        this.monitor = monitor;
         this.dataSource = dataSource;
+        this.filePath = filePath;
         this.workbook = new XSSFWorkbook();
 
         // Font
@@ -84,9 +87,9 @@ public abstract class ExcelMainStyle {
     protected abstract void generateTableNamesSheet(List<CubridTable> tables) throws DBException;
     protected abstract void generateTableDetailSheets(CubridTable table) throws DBException;
 
-    public final void generateExcel() throws DBException, IOException {
+    public final void generateExcel() throws DBException, IOException, InterruptedException {
         try {
-            List<CubridTable> tables = TableDefinitionFetcher.getTables(dataSource);
+            List<CubridTable> tables = TableDefinitionFetcher.getTables(monitor, dataSource);
             generateTableNamesSheet(tables);
             for (CubridTable table : tables) {
                 generateTableDetailSheets(table);
@@ -97,12 +100,14 @@ public abstract class ExcelMainStyle {
         }
     }
 
-    protected void saveWorkbook(String filePath) {
+    protected void saveWorkbook(String filePath) throws IOException {
         try (FileOutputStream out = new FileOutputStream(filePath)) {
             workbook.write(out);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save Excel file: " + e.getMessage(), e);
         }
+    }
+
+    public DBRProgressMonitor getMonitor() {
+        return monitor;
     }
 
     public CubridDataSource getDataSource() {

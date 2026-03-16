@@ -11,7 +11,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
-import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -23,6 +22,8 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
+import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 
 public class ExcelExportDialog extends TitleAreaDialog {
 
@@ -65,15 +66,16 @@ public class ExcelExportDialog extends TitleAreaDialog {
             return;
         }
 
-        ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(getShell());
+        ProgressMonitorDialog progress = new ProgressMonitorDialog(getShell());
         try {
-            progressDialog.run(true, false, (IRunnableWithProgress) monitor -> {
+            progress.run(true, false, monitor -> {
                 monitor.beginTask("Generating Excel file...", IProgressMonitor.UNKNOWN);
+                DBRProgressMonitor dbMonitor = new VoidProgressMonitor();
                 try {
                     if (selectedStyle == DocumentStyle.GENERIC) {
-                        new ExcelGenericStyle(fullPath, dataSource).generateExcel();
+                        new ExcelGenericStyle(dbMonitor, dataSource, fullPath).generateExcel();
                     } else {
-                        new ExcelSimpleStyle(fullPath, dataSource).generateExcel();
+                        new ExcelSimpleStyle(dbMonitor, dataSource, fullPath).generateExcel();
                     }
                 } catch (DBException | IOException e) {
                     throw new RuntimeException(e);
@@ -86,7 +88,8 @@ public class ExcelExportDialog extends TitleAreaDialog {
             super.okPressed();
 
         } catch (Exception e) {
-            MessageDialog.openError(getShell(), "Error", "Failed to generate Excel: " + e.getMessage());
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            MessageDialog.openError(getShell(), "Export Failed", "Failed to generate Excel: " + cause.getMessage());
         }
     }
 

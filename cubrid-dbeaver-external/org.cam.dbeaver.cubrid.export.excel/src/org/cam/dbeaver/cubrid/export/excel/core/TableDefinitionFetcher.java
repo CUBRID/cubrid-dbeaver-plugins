@@ -25,13 +25,11 @@ import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
 
 public class TableDefinitionFetcher {
-    private static final DBRProgressMonitor monitor = new VoidProgressMonitor();
 
-    public static List<CubridTable> getTables(CubridDataSource dataSource) throws DBException {
+    public static List<CubridTable> getTables(DBRProgressMonitor monitor, CubridDataSource dataSource) throws DBException {
         List<CubridTable> tables = new ArrayList<>();
         for (GenericSchema schema : dataSource.getCubridUsers(monitor)) {
             if (schema instanceof CubridUser user) {
@@ -41,17 +39,17 @@ public class TableDefinitionFetcher {
         return tables;
     }
 
-    public static List<CubridTableColumn> getColumns(CubridTable table) throws DBException {
+    public static List<CubridTableColumn> getColumns(DBRProgressMonitor monitor, CubridTable table) throws DBException {
         return table.getAttributes(monitor);
     }
 
-    public static List<GenericUniqueKey> getConstraints(CubridTable table) throws DBException {
+    public static List<GenericUniqueKey> getConstraints(DBRProgressMonitor monitor, CubridTable table) throws DBException {
         return table.getConstraints(monitor);
     }
 
-    public static Set<String> getPrimaryKeyColumnNames(CubridTable table) throws DBException {
+    public static Set<String> getPrimaryKeyColumnNames(DBRProgressMonitor monitor, CubridTable table) throws DBException {
         Set<String> pkColumnNames = new HashSet<>();
-        for (GenericUniqueKey pk : getConstraints(table)) {
+        for (GenericUniqueKey pk : getConstraints(monitor, table)) {
             if (pk.getConstraintType() == DBSEntityConstraintType.PRIMARY_KEY) {
                 List<GenericTableConstraintColumn> refs = pk.getAttributeReferences(monitor);
                 if (refs == null) {
@@ -68,7 +66,7 @@ public class TableDefinitionFetcher {
         return pkColumnNames;
     }
 
-    public static List<IndexKey> getIndexes(CubridTable table) throws DBException {
+    public static List<IndexKey> getIndexes(DBRProgressMonitor monitor, CubridTable table) throws DBException {
         List<IndexKey> indexColumns = new ArrayList<>();
         boolean isSupportMultiSchema = table.getDataSource().getSupportMultiSchema();
 
@@ -94,14 +92,14 @@ public class TableDefinitionFetcher {
                 while (dbResult.next()) {
                     String indexName = JDBCUtils.safeGetString(dbResult, "index_name");
                     String columnName = JDBCUtils.safeGetString(dbResult, "key_attr_name");
-                    int ordering = JDBCUtils.safeGetInteger(dbResult, "key_position");
+                    int keyPosition = JDBCUtils.safeGetInteger(dbResult, "key_position");
 
                     IndexKey index = indexColumns.stream().filter(k -> k.getIndexName().equals(indexName)).findFirst().orElse(null);
                     if (index != null) {
-                        index.addColumn(columnName, ordering);
+                        index.addColumn(columnName, keyPosition);
                     } else {
                         index = new IndexKey(indexName);
-                        index.addColumn(columnName, ordering);
+                        index.addColumn(columnName, keyPosition);
                         indexColumns.add(index);
                     }
                 }
@@ -112,7 +110,7 @@ public class TableDefinitionFetcher {
         return indexColumns;
     }
 
-    public static String getDDL(CubridTable table) throws DBException {
+    public static String getDDL(DBRProgressMonitor monitor, CubridTable table) throws DBException {
         Map<String, Object> options = new HashMap<>();
         options.put("ddl.source", true);
         options.put("ddl.separateForeignKeys", false);
@@ -141,8 +139,8 @@ public class TableDefinitionFetcher {
             this.indexName = indexName;
         }
 
-        public void addColumn(String columnName, int ordering) {
-            this.columns.add(new IndexColumn(columnName, ordering));
+        public void addColumn(String columnName, int keyPosition) {
+            this.columns.add(new IndexColumn(columnName, keyPosition));
         }
 
         public String getIndexName() { return indexName; }
@@ -152,14 +150,14 @@ public class TableDefinitionFetcher {
 
     public static class IndexColumn {
         private String columnName;
-        private int ordering;
+        private int keyPosition;
 
-        public IndexColumn(String columnName, int ordering) {
+        public IndexColumn(String columnName, int keyPosition) {
             this.columnName = columnName;
-            this.ordering = ordering;
+            this.keyPosition = keyPosition;
         }
 
         public String getColumnName() { return columnName; }
-        public int getOrdering() { return ordering; }
+        public int getKeyPosition() { return keyPosition; }
     }
 }
