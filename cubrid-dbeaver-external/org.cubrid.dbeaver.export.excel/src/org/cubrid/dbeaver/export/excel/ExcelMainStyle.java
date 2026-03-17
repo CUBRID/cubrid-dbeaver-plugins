@@ -153,7 +153,7 @@ public abstract class ExcelMainStyle {
             row = sheet.createRow(rowIdx);
         }
         Cell cell = row.createCell(colIdx);
-        cell.setCellValue(content);
+        cell.setCellValue(content != null ? content : "");
         cell.setCellStyle(style);
     }
 
