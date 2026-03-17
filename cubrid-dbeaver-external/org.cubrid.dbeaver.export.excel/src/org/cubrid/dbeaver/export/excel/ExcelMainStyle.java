@@ -88,7 +88,7 @@ public abstract class ExcelMainStyle {
     protected abstract void generateTableNamesSheet(List<CubridTable> tables) throws DBException;
     protected abstract void generateTableDetailSheets(CubridTable table) throws DBException;
 
-    public final void generateExcel() throws DBException, IOException, InterruptedException {
+    public final void generateExcel() throws DBException, IOException {
         try {
             List<CubridTable> tables = TableDefinitionFetcher.getTables(monitor, dataSource);
             generateTableNamesSheet(tables);
