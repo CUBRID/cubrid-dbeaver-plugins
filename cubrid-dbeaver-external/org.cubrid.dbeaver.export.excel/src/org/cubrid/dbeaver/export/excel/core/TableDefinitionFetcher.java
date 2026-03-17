@@ -1,4 +1,4 @@
-package org.cam.dbeaver.cubrid.export.excel.core;
+package org.cubrid.dbeaver.export.excel.core;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

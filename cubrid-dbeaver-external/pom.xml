@@ -4,8 +4,8 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.cam.dbeaver</groupId>
-    <artifactId>dbeaver-cubrid</artifactId>
+    <groupId>org.cubrid.dbeaver</groupId>
+    <artifactId>cubrid-dbeaver-parent</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
 
@@ -17,8 +17,8 @@
     </properties>
 
     <modules>
-        <module>org.cam.dbeaver.cubrid.export.excel</module>
-        <module>org.cam.dbeaver.cubrid.export.excel.feature</module>
+        <module>org.cubrid.dbeaver.export.excel</module>
+        <module>org.cubrid.dbeaver.export.excel.feature</module>
     </modules>
 
     <repositories>

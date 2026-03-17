@@ -1,12 +1,12 @@
-package org.cam.dbeaver.cubrid.export.excel.ui;
+package org.cubrid.dbeaver.export.excel.ui;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import org.cam.dbeaver.cubrid.export.excel.ExcelGenericStyle;
-import org.cam.dbeaver.cubrid.export.excel.ExcelSimpleStyle;
+import org.cubrid.dbeaver.export.excel.ExcelGenericStyle;
+import org.cubrid.dbeaver.export.excel.ExcelSimpleStyle;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;

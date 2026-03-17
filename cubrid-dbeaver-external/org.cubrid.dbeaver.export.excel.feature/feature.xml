@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-      id="org.cam.dbeaver.cubrid.export.excel.feature"
+      id="org.cubrid.dbeaver.export.excel.feature"
       label="CUBRID Export Excel"
       version="1.0.0"
       provider-name="CUBRID">
@@ -8,5 +8,5 @@
     <description>CUBRID Plugin for DBeaver for Excel export.</description>
     <copyright>CUBRID</copyright>
 
-    <plugin id="org.cam.dbeaver.cubrid.export.excel" version="0.0.0"/>
+    <plugin id="org.cubrid.dbeaver.export.excel" version="0.0.0"/>
 </feature>

@@ -1,4 +1,4 @@
-package org.cam.dbeaver.cubrid.export.excel;
+package org.cubrid.dbeaver.export.excel;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.RegionUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher;
+import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;

@@ -1,6 +1,6 @@
-package org.cam.dbeaver.cubrid.export.excel.handler;
+package org.cubrid.dbeaver.export.excel.handler;
 
-import org.cam.dbeaver.cubrid.export.excel.ui.ExcelExportDialog;
+import org.cubrid.dbeaver.export.excel.ui.ExcelExportDialog;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;

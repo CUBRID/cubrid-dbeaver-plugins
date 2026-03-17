@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.cam.dbeaver</groupId>
-        <artifactId>dbeaver-cubrid</artifactId>
+        <groupId>org.cubrid.dbeaver</groupId>
+        <artifactId>cubrid-dbeaver-parent</artifactId>
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>org.cam.dbeaver.cubrid.export.excel</artifactId>
+    <artifactId>org.cubrid.dbeaver.export.excel</artifactId>
     <packaging>eclipse-plugin</packaging>
 
 </project>

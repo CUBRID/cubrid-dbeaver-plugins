@@ -1,10 +1,10 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: DBeaver Table Definition Excel Export
-Bundle-SymbolicName: org.cam.dbeaver.cubrid.export.excel;singleton:=true
+Bundle-SymbolicName: org.cubrid.dbeaver.export.excel;singleton:=true
 Bundle-Version: 1.0.0
-Bundle-Vendor: cam.buabu
-Automatic-Module-Name: org.cam.dbeaver.cubrid.export.excel
+Bundle-Vendor: CUBRID
+Automatic-Module-Name: org.cubrid.dbeaver.export.excel
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Require-Bundle: org.jkiss.bundle.apache.poi,
  org.jkiss.dbeaver.ext.cubrid,

@@ -6,11 +6,11 @@
     </extension>
 
     <extension point="org.eclipse.ui.commandImages">
-        <image commandId="cubridExportExcel" icon="platform:/plugin/org.cam.dbeaver.cubrid.export.excel/icons/excel_icon.svg"/>
+        <image commandId="cubridExportExcel" icon="platform:/plugin/org.cubrid.dbeaver.export.excel/icons/excel_icon.svg"/>
     </extension>
 
     <extension point="org.eclipse.ui.handlers">
-        <handler commandId="cubridExportExcel" class="org.cam.dbeaver.cubrid.export.excel.handler.ExcelExportHandler">
+        <handler commandId="cubridExportExcel" class="org.cubrid.dbeaver.export.excel.handler.ExcelExportHandler">
             <enabledWhen>
                 <with variable="selection">
                     <count value="+"/>

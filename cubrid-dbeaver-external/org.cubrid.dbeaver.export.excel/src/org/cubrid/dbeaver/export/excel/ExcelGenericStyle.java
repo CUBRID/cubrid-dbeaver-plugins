@@ -1,23 +1,23 @@
-package org.cam.dbeaver.cubrid.export.excel;
+package org.cubrid.dbeaver.export.excel;
 
 import java.util.List;
 import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.WorkbookUtil;
-import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher;
-import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher.IndexColumn;
-import org.cam.dbeaver.cubrid.export.excel.core.TableDefinitionFetcher.IndexKey;
+import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher;
+import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher.IndexColumn;
+import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher.IndexKey;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTableColumn;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
-public class ExcelSimpleStyle extends ExcelMainStyle {
+public class ExcelGenericStyle extends ExcelMainStyle {
 
-    public ExcelSimpleStyle(DBRProgressMonitor monitor, CubridDataSource dataSource, String filePath) {
-        super(monitor, dataSource, filePath);
+    public ExcelGenericStyle(DBRProgressMonitor monitor, CubridDataSource dataSource, String filePath) {
+    	super(monitor, dataSource, filePath);
     }
 
     @Override
@@ -39,33 +39,36 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
 
         // === Row 3 ===
         addCell(sheet, 2, 0, "Table Name", getBoldStyle());
-        addCell(sheet, 2, 1, "Table Description", getBoldStyle());
-        mergeCell(sheet, 2, 2, 1, 5);
+        addCell(sheet, 2, 1, "Table ID", getBoldStyle());
+        addCell(sheet, 2, 2, "Description", getBoldStyle());
+        addCell(sheet, 2, 5, "Memo", getBoldStyle());
+        mergeCell(sheet, 2, 2, 2, 4);
 
         // === Row 4 to End ===
         int rowIndex = 3;
         for (CubridTable table : tables) {
             String tableName = table.getSchema() + "." + table.getName();
-            addCell(sheet, rowIndex, 0, tableName, getLeftStyle());
-            addCell(sheet, rowIndex, 1, table.getDescription(), getLeftStyle());
-            mergeCell(sheet, rowIndex, rowIndex, 1, 5);
+            addCell(sheet, rowIndex, 0, table.getDescription(), getLeftStyle());
+            addCell(sheet, rowIndex, 1, tableName, getLeftStyle());
+            addCell(sheet, rowIndex, 5, "", getCenterStyle());
+            mergeCell(sheet, rowIndex, rowIndex, 2, 4);
             rowIndex++;
         }
     }
 
     @Override
     public void generateTableDetailSheets(CubridTable table) throws DBException {
-        String tableName = table.getSchema() + "." + table.getName();
-        String sheetName = tableName.length() > 31 ? tableName.substring(0, 31) : tableName;
+    	String tableName = table.getSchema() + "." + table.getName();
+    	String sheetName = tableName.length() > 31 ? tableName.substring(0, 31) : tableName;
         String safeName = WorkbookUtil.createSafeSheetName(sheetName);
-        Sheet tableSheet = getWorkbook().createSheet(safeName);
-        applySheetDimensions(tableSheet, 18, 20, 13, 9, 9, 9, 10, 29);
+    	Sheet tableSheet = getWorkbook().createSheet(safeName);
+        applySheetDimensions(tableSheet, 18, 20, 13, 13, 11, 11, 11, 20);
 
-        // === Row 1 ===
+    	// === Row 1 ===
         addCell(tableSheet, 0, 0, "Table Definitions", getBoldStyle());
         mergeCell(tableSheet, 0, 0, 0, 7);
 
-        // === Row 2 ===
+    	// === Row 2 ===
         addCell(tableSheet, 1, 0, "System", getBoldStyle());
         addCell(tableSheet, 1, 1, "", getCenterStyle());
         addCell(tableSheet, 1, 2, "Date", getBoldStyle());
@@ -77,23 +80,23 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
 
         // === Row 3 ===
         addCell(tableSheet, 2, 0, "Table Name", getBoldStyle());
-        addCell(tableSheet, 2, 1, tableName, getLeftStyle());
+        addCell(tableSheet, 2, 1, table.getDescription(), getLeftStyle());
         mergeCell(tableSheet, 2, 2, 1, 7);
 
         // === Row 4 ===
-        addCell(tableSheet, 3, 0, "Table Description", getBoldStyle());
-        addCell(tableSheet, 3, 1, table.getDescription(), getLeftStyle());
+        addCell(tableSheet, 3, 0, "Table ID", getBoldStyle());
+        addCell(tableSheet, 3, 1, tableName, getLeftStyle());
         mergeCell(tableSheet, 3, 3, 1, 7);
 
-        // === Row 4 ===
+        // === Row 5 ===
         addCell(tableSheet, 4, 0, "Column Name", getBoldStyle());
-        addCell(tableSheet, 4, 1, "Data Type", getBoldStyle());
-        addCell(tableSheet, 4, 2, "Size", getBoldStyle());
-        addCell(tableSheet, 4, 3, "NULL", getBoldStyle());
-        addCell(tableSheet, 4, 4, "PK", getBoldStyle());
-        addCell(tableSheet, 4, 5, "FK", getBoldStyle());
-        addCell(tableSheet, 4, 6, "Default", getBoldStyle());
-        addCell(tableSheet, 4, 7, "Description", getBoldStyle());
+        addCell(tableSheet, 4, 1, "Column ID", getBoldStyle());
+        addCell(tableSheet, 4, 2, "Data Type", getBoldStyle());
+        addCell(tableSheet, 4, 3, "Size", getBoldStyle());
+        addCell(tableSheet, 4, 4, "NULL", getBoldStyle());
+        addCell(tableSheet, 4, 5, "PK", getBoldStyle());
+        addCell(tableSheet, 4, 6, "FK", getBoldStyle());
+        addCell(tableSheet, 4, 7, "Memo", getBoldStyle());
 
         int rowIndex = 5;
         Set<String> pkColumnNames = TableDefinitionFetcher.getPrimaryKeyColumnNames(getMonitor(), table);
@@ -102,14 +105,14 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
             String isFK = column.isForeignKey() ? "Y" : "";
             String isPK = pkColumnNames.contains(column.getName()) ? "Y" : "";
 
-            addCell(tableSheet, rowIndex, 0, column.getName(), getLeftStyle());
-            addCell(tableSheet, rowIndex, 1, column.getTypeName(), getLeftStyle());
-            addCell(tableSheet, rowIndex, 2, column.getMaxLength(), getRightStyle());
-            addCell(tableSheet, rowIndex, 3, isNull, getCenterStyle());
-            addCell(tableSheet, rowIndex, 4, isPK, getCenterStyle());
-            addCell(tableSheet, rowIndex, 5, isFK, getCenterStyle());
-            addCell(tableSheet, rowIndex, 6, column.getDefaultValue(), getCenterStyle());
-            addCell(tableSheet, rowIndex, 7, column.getDescription(), getLeftStyle());
+            addCell(tableSheet, rowIndex, 0, column.getDescription(), getLeftStyle());
+            addCell(tableSheet, rowIndex, 1, column.getName(), getLeftStyle());
+            addCell(tableSheet, rowIndex, 2, column.getTypeName(), getLeftStyle());
+            addCell(tableSheet, rowIndex, 3, column.getMaxLength(), getRightStyle());
+            addCell(tableSheet, rowIndex, 4, isNull, getCenterStyle());
+            addCell(tableSheet, rowIndex, 5, isPK, getCenterStyle());
+            addCell(tableSheet, rowIndex, 6, isFK, getCenterStyle());
+            addCell(tableSheet, rowIndex, 7, "", getCenterStyle());
             rowIndex++;
         }
 
@@ -141,7 +144,6 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
             for (int i = 0; i < numColumns; i++) {
                 IndexColumn indexColumn = index.getColumns().get(i);
                 rowIndex++;
-
                 if (i == 0) {
                     addCell(tableSheet, rowIndex, 0, indexNo++, getCenterStyle());
                 } else {
@@ -184,4 +186,3 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
         tableSheet.getRow(rowIndex).setHeightInPoints((numLines + 1) * tableSheet.getDefaultRowHeightInPoints());
     }
 }
-
