@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.util.WorkbookUtil;
 import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher;
 import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher.IndexColumn;
 import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher.IndexKey;
@@ -45,7 +44,7 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
         // === Row 4 to End ===
         int rowIndex = 3;
         for (CubridTable table : tables) {
-            String tableName = table.getSchema() + "." + table.getName();
+            String tableName = getFullTableName(table);
             addCell(sheet, rowIndex, 0, tableName, getLeftStyle());
             addCell(sheet, rowIndex, 1, table.getDescription(), getLeftStyle());
             mergeCell(sheet, rowIndex, rowIndex, 1, 5);
@@ -55,10 +54,10 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
 
     @Override
     public void generateTableDetailSheets(CubridTable table) throws DBException {
-        String tableName = table.getSchema() + "." + table.getName();
-        String sheetName = tableName.length() > 31 ? tableName.substring(0, 31) : tableName;
-        String safeName = WorkbookUtil.createSafeSheetName(sheetName);
-        Sheet tableSheet = getWorkbook().createSheet(safeName);
+        String tableName = getFullTableName(table);
+        String sheetName = getUniqueSheetName(tableName);
+
+        Sheet tableSheet = getWorkbook().createSheet(sheetName);
         applySheetDimensions(tableSheet, 18, 20, 13, 9, 9, 9, 10, 29);
 
         // === Row 1 ===

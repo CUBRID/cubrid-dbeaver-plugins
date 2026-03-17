@@ -91,6 +91,9 @@ public class TableDefinitionFetcher {
             try (JDBCResultSet dbResult = dbStat.executeQuery()) {
                 while (dbResult.next()) {
                     String indexName = JDBCUtils.safeGetString(dbResult, "index_name");
+                    if (indexName == null) {
+                        continue;
+                    }
                     String columnName = JDBCUtils.safeGetString(dbResult, "key_attr_name");
                     int keyPosition = JDBCUtils.safeGetInteger(dbResult, "key_position");
 

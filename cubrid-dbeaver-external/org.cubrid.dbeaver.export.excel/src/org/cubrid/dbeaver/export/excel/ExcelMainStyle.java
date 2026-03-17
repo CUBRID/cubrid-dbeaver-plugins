@@ -19,6 +19,7 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.RegionUtil;
+import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.cubrid.dbeaver.export.excel.core.TableDefinitionFetcher;
 import org.jkiss.dbeaver.DBException;
@@ -138,6 +139,10 @@ public abstract class ExcelMainStyle {
         return dateString;
     }
 
+    public String getFullTableName(CubridTable table) {
+        return table.getSchema().getName() + "." + table.getName();
+    }
+
     public void applySheetDimensions(Sheet sheet, int... widths) {
         sheet.createRow(0).setHeightInPoints(24);
         if (widths != null && widths.length > 0) {
@@ -179,5 +184,20 @@ public abstract class ExcelMainStyle {
         RegionUtil.setBorderBottom(BorderStyle.THIN, region, sheet);
         RegionUtil.setBorderLeft(BorderStyle.THIN, region, sheet);
         RegionUtil.setBorderRight(BorderStyle.THIN, region, sheet);
+    }
+
+    public String getUniqueSheetName(String tableName) {
+        String safeBaseName = WorkbookUtil.createSafeSheetName(tableName);
+        String name = safeBaseName.length() > 31 ? safeBaseName.substring(0, 31) : safeBaseName;
+        int count = 1;
+
+        while (workbook.getSheet(name) != null) {
+            String suffix = "_" + count++;
+            int maxLen = 31 - suffix.length();
+            String trimmedBase = safeBaseName.length() > maxLen ? safeBaseName.substring(0, maxLen) : safeBaseName;
+            name = trimmedBase + suffix;
+        }
+
+        return name;
     }
 }
