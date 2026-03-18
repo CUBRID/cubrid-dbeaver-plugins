@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension point="org.eclipse.ui.commands">
+        <command id="cubridExportLoaddb" name="Export to LoadDB" description="Export to LoadDB" categoryId="org.jkiss.dbeaver.core.navigator"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commandImages">
+        <image commandId="cubridExportLoaddb" icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/file/export.svg"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.handlers">
+        <handler commandId="cubridExportLoaddb" class="org.cubrid.dbeaver.export.loaddb.handler.CubridLoadDBExportHandler">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <or>
+                            <adapt type="org.jkiss.dbeaver.model.struct.DBSObject">
+                                <instanceof value="org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource"/>
+                            </adapt>
+                            <and>
+                                <instanceof value="org.jkiss.dbeaver.model.navigator.DBNDatabaseNode"/>
+                                <adapt type="org.jkiss.dbeaver.model.struct.DBSObject">
+                                    <instanceof value="org.jkiss.dbeaver.model.struct.rdb.DBSSchema"/>
+                                </adapt>
+                            </and>
+                            <and>
+                                <instanceof value="org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder"/>
+                                <test property="org.jkiss.dbeaver.ext.cubrid.isSchemasFolder" value="true" forcePluginActivation="true"/>
+                            </and>
+                        </or>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+    </extension>
+
+    <extension point="org.eclipse.ui.menus">
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=cubridExportExcel">
+            <command commandId="cubridExportLoaddb">
+                <visibleWhen checkEnabled="true"/>
+            </command>
+        </menuContribution>
+    </extension>
+
+    <extension point="org.eclipse.core.expressions.propertyTesters">
+        <propertyTester
+            id="org.jkiss.dbeaver.ext.cubrid.schemasFolderTester"
+            type="org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder"
+            namespace="org.jkiss.dbeaver.ext.cubrid"
+            properties="isSchemasFolder"
+            class="org.cubrid.dbeaver.export.loaddb.property.CubridSchemasFolderPropertyTester"/>
+    </extension>
+</plugin>
