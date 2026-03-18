@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension point="org.eclipse.ui.commands">
+        <command id="cubridExportExcel" name="Export table definitions to Excel" description="Export table definitions to Excel" categoryId="org.jkiss.dbeaver.core.navigator"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commandImages">
+        <image commandId="cubridExportExcel" icon="platform:/plugin/org.cubrid.dbeaver.export.excel/icons/excel_icon.svg"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.handlers">
+        <handler commandId="cubridExportExcel" class="org.cubrid.dbeaver.export.excel.handler.ExcelExportHandler">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="org.jkiss.dbeaver.model.struct.DBSObject">
+                            <instanceof value="org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+    </extension>
+
+    <extension point="org.eclipse.ui.menus">
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=object">
+            <command commandId="cubridExportExcel">
+                <visibleWhen checkEnabled="true"/>
+            </command>
+        </menuContribution>
+    </extension>
+</plugin>
