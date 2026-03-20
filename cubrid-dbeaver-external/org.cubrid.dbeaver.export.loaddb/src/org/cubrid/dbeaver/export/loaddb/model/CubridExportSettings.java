@@ -11,7 +11,6 @@ public class CubridExportSettings {
     private List<String> tables = new ArrayList<>();
     private List<CubridExportObjectInfo> exportObjects = new ArrayList<>();
     private String charset = "UTF-8";
-    private CubridExportSettings settings;
     private CubridDataSource dataSource;
     private boolean isSplitSchemaFile = false;
     private boolean isExportStartValue = true;
@@ -96,13 +95,5 @@ public class CubridExportSettings {
 
     public void setTables(List<String> tables) {
         this.tables = tables;
-    }
-
-    public CubridExportSettings getSettings() {
-        return settings;
-    }
-
-    public void setSettings(CubridExportSettings settings) {
-        this.settings = settings;
     }
 }

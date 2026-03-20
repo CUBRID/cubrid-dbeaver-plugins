@@ -126,13 +126,18 @@ public class CubridLoadDBExporter {
     }
     
     public void exportData(CubridExportObjectInfo info, String charset) {
+        final int FLUSH_THRESHOLD = 16 * 1024 * 1024; // 16 MB threshold
         String fileName = settings.getOutputFile(info);
         StringBuilder sb = new StringBuilder();
         for (CubridTable table : tables) {
             sql.buildData(sb, table);
+            if (sb.length() > FLUSH_THRESHOLD) {
+                repo.appendFile(sb, fileName, charset);
+                sb.setLength(0);
+            }
         }
         if (sb.length() > 0) {
-            repo.saveFile(sb, fileName, charset);
+            repo.appendFile(sb, fileName, charset);
         }
     }
 }

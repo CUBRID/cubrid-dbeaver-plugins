@@ -18,6 +18,7 @@ import org.jkiss.dbeaver.ext.cubrid.model.CubridView;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableConstraintColumn;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey;
+import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKeyColumnTable;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
 import org.jkiss.dbeaver.ext.generic.model.GenericTableIndexColumn;
 import org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey;
@@ -290,52 +291,65 @@ public class CubridLoadDBSQLBuilder {
     public void buildForeignKey(StringBuilder sb, List<CubridTable> tables) {
         for (CubridTable table : tables) {
             String query = "SELECT * FROM db_index WHERE is_foreign_key = 'YES' AND class_name = ?"
-                    + (isMultiSchema ? " AND owner.name = ?" : "");
+                    + (isMultiSchema ? " AND owner_name = ?" : "");
             query = dataSource.wrapShardQuery(query);
-            try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load Serial")) {
-                JDBCPreparedStatement dbStat = session.prepareStatement(query);
-                dbStat.setString(1, table.getName());
-                if (isMultiSchema) {
-                    dbStat.setString(2, table.getSchema().getName());
-                }
-
-                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
-                    while (dbResult.next()) {
-                        String fkName = JDBCUtils.safeGetString(dbResult, "index_name");
-                        GenericTableForeignKey fk = table.getAssociation(monitor, fkName);
-                        if (fk == null) {
-                            continue;
-                        }
-                        String deleteRule = fk.getDeleteRule().getName().toUpperCase();
-                        String updateRule = fk.getUpdateRule().getName().toUpperCase();
-                        CubridTable refTab = (CubridTable) fk.getReferencedTable();
-
-                        String col = fk.getAttributeReferences(monitor).get(0).getName();
-
-                        StringBuilder refColsBuilder = new StringBuilder();
-                        for (GenericUniqueKey key : refTab.getConstraints(monitor)) {
-                            if (key.getConstraintType() == DBSEntityConstraintType.PRIMARY_KEY) {
-                                List<GenericTableConstraintColumn> refCols = key.getAttributeReferences(monitor);
-                                for (int i = 0; i < refCols.size(); i++) {
-                                    refColsBuilder.append(wrapString(refCols.get(i).getName()));
-                                    if (i != refCols.size() - 1) {
-                                        refColsBuilder.append(", ");
-                                    }
+            try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load Foreign Key")) {
+                try (JDBCPreparedStatement dbStat = session.prepareStatement(query)) {
+                    dbStat.setString(1, table.getName());
+                    if (isMultiSchema) {
+                        dbStat.setString(2, table.getSchema().getName());
+                    }
+    
+                    try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                        while (dbResult.next()) {
+                            String fkName = JDBCUtils.safeGetString(dbResult, "index_name");
+                            GenericTableForeignKey fk = table.getAssociation(monitor, fkName);
+                            if (fk == null) {
+                                continue;
+                            }
+                            String deleteRule = fk.getDeleteRule().getName().toUpperCase();
+                            String updateRule = fk.getUpdateRule().getName().toUpperCase();
+                            CubridTable refTab = (CubridTable) fk.getReferencedTable();
+    
+                            List<GenericTableForeignKeyColumnTable> fkCols = fk.getAttributeReferences(monitor);
+                            if (fkCols == null || fkCols.isEmpty()) {
+                                continue;
+                            }
+                         
+                            StringBuilder fkColsBuilder = new StringBuilder();
+                            for (int i = 0; i < fkCols.size(); i++) {
+                                fkColsBuilder.append(wrapString(fkCols.get(i).getName()));
+                                if (i != fkCols.size() - 1) {
+                                    fkColsBuilder.append(", ");
                                 }
                             }
-                        }
 
-                        sb.append(String.format(
-                            "ALTER CLASS %s ADD CONSTRAINT %s FOREIGN KEY (%s)%s REFERENCES %s(%s) ON DELETE %s ON UPDATE %s;\n\n",
-                            wrapTable(table),
-                            wrapString(fk.getName()),
-                            wrapString(col),
-                            isMultiSchema ? " WITH DEDUPLICATE=0" : "",
-                            wrapTable(refTab),
-                            refColsBuilder,
-                            deleteRule,
-                            updateRule
-                        ));
+                            StringBuilder refColsBuilder = new StringBuilder();
+                            for (GenericUniqueKey key : refTab.getConstraints(monitor)) {
+                                if (key.getConstraintType() == DBSEntityConstraintType.PRIMARY_KEY) {
+                                    List<GenericTableConstraintColumn> refCols = key.getAttributeReferences(monitor);
+                                    for (int i = 0; i < refCols.size(); i++) {
+                                        refColsBuilder.append(wrapString(refCols.get(i).getName()));
+                                        if (i != refCols.size() - 1) {
+                                            refColsBuilder.append(", ");
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+    
+                            sb.append(String.format(
+                                "ALTER CLASS %s ADD CONSTRAINT %s FOREIGN KEY (%s)%s REFERENCES %s(%s) ON DELETE %s ON UPDATE %s;\n\n",
+                                wrapTable(table),
+                                wrapString(fk.getName()),
+                                fkColsBuilder,
+                                isMultiSchema ? " WITH DEDUPLICATE=0" : "",
+                                wrapTable(refTab),
+                                refColsBuilder,
+                                deleteRule,
+                                updateRule
+                            ));
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -552,10 +566,8 @@ public class CubridLoadDBSQLBuilder {
                     for (int i = 1; i <= columnCount; i++) {
                         String value = JDBCUtils.safeGetString(dbResult, i);
                         if (value == null) {
-                            value = "";
-                        }
-
-                        if (numericColumns[i - 1]) {
+                            sb.append("NULL");
+                        } else if (numericColumns[i - 1]) {
                             sb.append(value);
                         } else {
                             sb.append("'").append(value).append("'");

@@ -158,18 +158,19 @@ public class CubridLoadDBRepository {
         SerialExtraInfo extra = new SerialExtraInfo(null, null, false);
 
         try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load Serial")) {
-            JDBCPreparedStatement dbStat = session.prepareStatement(query);
-            dbStat.setString(1, serial.getName());
-            if (isMultiSchema) {
-                dbStat.setString(2, serial.getOwner().getName());
-            }
+            try (JDBCPreparedStatement dbStat = session.prepareStatement(query)) {
+                dbStat.setString(1, serial.getName());
+                if (isMultiSchema) {
+                    dbStat.setString(2, serial.getOwner().getName());
+                }
 
-            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
-                if (dbResult.next()) {
-                    String className = JDBCUtils.safeGetString(dbResult, "class_name");
-                    String attrName = JDBCUtils.safeGetString(dbResult, attrColumn);
-                    boolean started = JDBCUtils.safeGetBoolean(dbResult, "started");
-                    extra = new SerialExtraInfo(className, attrName, started);
+                try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                    if (dbResult.next()) {
+                        String className = JDBCUtils.safeGetString(dbResult, "class_name");
+                        String attrName = JDBCUtils.safeGetString(dbResult, attrColumn);
+                        boolean started = JDBCUtils.safeGetBoolean(dbResult, "started");
+                        extra = new SerialExtraInfo(className, attrName, started);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -217,29 +218,25 @@ public class CubridLoadDBRepository {
         return null;
     }
 
-    public void saveFile(StringBuilder builder, String fileName, String fileCharset) {
+    private void writeFile(StringBuilder builder, String fileName, String fileCharset, boolean append) {
         try (BufferedWriter w = (fileCharset != null && fileCharset.trim().length() > 0)
-            ? new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName), fileCharset))
-            : new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName)))
+            ? new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(fileName, append), fileCharset))
+            : new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(fileName, append)))
         ) {
             w.write(builder.toString());
-            w.flush();
         } catch (Exception e) {
-            DBWorkbench.getPlatformUI().showError("Error saving file", "Error while saving file", e);
+            DBWorkbench.getPlatformUI().showError("Error saving file", "Error while writing file", e);
         }
     }
 
+    public void saveFile(StringBuilder builder, String fileName, String fileCharset) {
+        writeFile(builder, fileName, fileCharset, false);
+    }
+
     public void appendFile(StringBuilder builder, String fileName, String fileCharset) {
-        try (BufferedWriter w = (fileCharset != null && fileCharset.trim().length() > 0)
-            ? new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(fileName, true), fileCharset))
-            : new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(fileName, true)))
-        ) {
-            w.append(builder);
-        } catch (Exception e) {
-            DBWorkbench.getPlatformUI().showError("Error saving file", "Error while appending file", e);
-        }
+        writeFile(builder, fileName, fileCharset, true);
     }
 
     public static class SerialExtraInfo {

@@ -8,6 +8,8 @@ import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.wizard.Wizard;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridUser;
+import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 
@@ -58,9 +60,10 @@ public class CubridLoadDBExportWizard extends Wizard {
         );
         if (confirmed) {
             try {
-                CubridLoadDBExporter export = new CubridLoadDBExporter(new VoidProgressMonitor(), dataSource, settings, selectedSchema);
                 ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(getShell());
                 progressDialog.run(true, true, monitor -> {
+                    DBRProgressMonitor dbMonitor = new DefaultProgressMonitor(monitor);
+                    CubridLoadDBExporter export = new CubridLoadDBExporter(dbMonitor, dataSource, settings, selectedSchema);
     	            monitor.beginTask("Generating LoadDB file...", IProgressMonitor.UNKNOWN);
     	            export.exportLoadDB();
     	            monitor.done();

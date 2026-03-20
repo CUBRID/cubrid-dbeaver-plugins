@@ -82,7 +82,7 @@ public class CubridExportOptionsWizardPage extends WizardPage {
         new Label(charsetRow, SWT.NONE).setText("JDBC Charset:");
         
         Text jdbcCombo = new Text(charsetRow, SWT.BORDER);
-        jdbcCombo.setText(getJDBCCharset());;
+        jdbcCombo.setText(getJDBCCharset() != null ? getJDBCCharset() : "UTF-8");
         jdbcCombo.setEnabled(false);
         jdbcCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
