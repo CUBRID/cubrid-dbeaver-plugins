@@ -137,7 +137,7 @@ public class CubridLoadDBExporter {
             }
         }
         if (sb.length() > 0) {
-            repo.appendFile(sb, fileName, charset);
+            repo.saveFile(sb, fileName, charset);
         }
     }
 }

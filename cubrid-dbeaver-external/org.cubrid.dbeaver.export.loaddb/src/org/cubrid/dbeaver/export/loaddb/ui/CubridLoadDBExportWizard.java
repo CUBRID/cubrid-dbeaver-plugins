@@ -10,7 +10,6 @@ import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridUser;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 
 public class CubridLoadDBExportWizard extends Wizard {
@@ -61,7 +60,7 @@ public class CubridLoadDBExportWizard extends Wizard {
         if (confirmed) {
             try {
                 ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(getShell());
-                progressDialog.run(true, true, monitor -> {
+                progressDialog.run(true, false, monitor -> {
                     DBRProgressMonitor dbMonitor = new DefaultProgressMonitor(monitor);
                     CubridLoadDBExporter export = new CubridLoadDBExporter(dbMonitor, dataSource, settings, selectedSchema);
     	            monitor.beginTask("Generating LoadDB file...", IProgressMonitor.UNKNOWN);

@@ -1,6 +1,8 @@
 package org.cubrid.dbeaver.export.loaddb.ui;
 
 import org.cubrid.dbeaver.export.loaddb.model.CubridExportObjectInfo;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -19,14 +21,16 @@ import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import org.jkiss.dbeaver.model.runtime.AbstractJob;
+import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.ui.UIUtils;
 
 public class CubridExportOptionsWizardPage extends WizardPage {
 
     private static final String[] ALL_CHARSET = {"UTF-8", "Cp1252", "ISO-8859-1", "EUC-KR", "EUC-JP", "GB2312", "GBK"};
     private CubridLoadDBExportWizard wizard;
     private Text path;
+    private Text jdbcCombo;
     private Button browse;
     private Button autoInc;
     private Button splitSchemaFile;
@@ -81,8 +85,8 @@ public class CubridExportOptionsWizardPage extends WizardPage {
 
         new Label(charsetRow, SWT.NONE).setText("JDBC Charset:");
         
-        Text jdbcCombo = new Text(charsetRow, SWT.BORDER);
-        jdbcCombo.setText(getJDBCCharset() != null ? getJDBCCharset() : "UTF-8");
+        jdbcCombo = new Text(charsetRow, SWT.BORDER);
+        jdbcCombo.setText("Loading...");
         jdbcCombo.setEnabled(false);
         jdbcCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
@@ -164,28 +168,51 @@ public class CubridExportOptionsWizardPage extends WizardPage {
         });
     }
 
-    public String getJDBCCharset() {
-    	CubridDataSource dataSource = wizard.getSettings().getDataSource();
-    	String sql = "SELECT charset FROM db_root";
-    	sql = dataSource.wrapShardQuery(sql);
-        try (JDBCSession session = DBUtils.openMetaSession(new VoidProgressMonitor(), dataSource, "Load charset")) {
-            try (JDBCPreparedStatement stmt = session.prepareStatement(sql)) {
-                try (JDBCResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-            	        int charsetNumber = rs.getInt("charset");
-                        switch (charsetNumber) {
-                            case 2: return "Binary";
-                            case 3: return "ISO-8859-1";
-                            case 4: return "EUC-KR";
-                            default: return "UTF-8";
+    @Override
+    public void setVisible(boolean visible) {
+        super.setVisible(visible);
+        if (visible) {
+            loadCharset();
+        }
+    }
+
+    public void loadCharset() {
+        new AbstractJob("Load CUBRID Charset") {
+            @Override
+            protected IStatus run(DBRProgressMonitor monitor) {
+                String finalCharset = "UTF-8"; 
+
+                CubridDataSource dataSource = wizard.getSettings().getDataSource();
+                String sql = dataSource.wrapShardQuery("SELECT charset FROM db_root");
+                try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load charset")) {
+                    try (JDBCPreparedStatement stmt = session.prepareStatement(sql)) {
+                        try (JDBCResultSet rs = stmt.executeQuery()) {
+                            if (rs.next()) {
+                                int charsetNumber = rs.getInt("charset");
+                                switch (charsetNumber) {
+                                    case 2: finalCharset = "Binary"; break;
+                                    case 3: finalCharset = "ISO-8859-1"; break;
+                                    case 4: finalCharset = "EUC-KR"; break;
+                                    default: finalCharset = "UTF-8"; break;
+                                }
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    System.err.println("Could not load charset: " + e.getMessage());
                 }
+
+                final String result = finalCharset;
+
+                UIUtils.syncExec(() -> {
+                    if (!jdbcCombo.isDisposed()) {
+                        jdbcCombo.setText(result);
+                    }
+                });
+                
+                return Status.OK_STATUS;
             }
-    	} catch (Exception e) {
-            DBWorkbench.getPlatformUI().showError("Load Charset", "Can't read charset list", e);
-        }
-        return null;
+        }.schedule();
     }
 
     @Override

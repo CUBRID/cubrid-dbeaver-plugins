@@ -149,10 +149,7 @@ public class CubridLoadDBRepository {
             return cached;
         }
 
-        String attrColumn = isMultiSchema ? "attr_name" : "att_name";
-        String query = "SELECT class_name, started, " + attrColumn
-            + " FROM db_serial WHERE name = ?"
-            + (isMultiSchema ? " AND owner.name = ?" : "");
+        String query = "SELECT * FROM db_serial WHERE name = ?" + (isMultiSchema ? " AND owner.name = ?" : "");
         query = dataSource.wrapShardQuery(query);
 
         SerialExtraInfo extra = new SerialExtraInfo(null, null, false);
@@ -167,7 +164,10 @@ public class CubridLoadDBRepository {
                 try (JDBCResultSet dbResult = dbStat.executeQuery()) {
                     if (dbResult.next()) {
                         String className = JDBCUtils.safeGetString(dbResult, "class_name");
-                        String attrName = JDBCUtils.safeGetString(dbResult, attrColumn);
+                        String attrName = JDBCUtils.safeGetString(dbResult, "att_name");
+                        if (attrName == null) {
+                            attrName = JDBCUtils.safeGetString(dbResult, "attr_name");
+                        }
                         boolean started = JDBCUtils.safeGetBoolean(dbResult, "started");
                         extra = new SerialExtraInfo(className, attrName, started);
                     }

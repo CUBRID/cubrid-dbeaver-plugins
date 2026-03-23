@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.cubrid.dbeaver.export.loaddb.model.CubridExportSettings;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridPartition;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridSequence;
@@ -41,6 +42,7 @@ public class CubridLoadDBSQLBuilder {
     private CubridExportSettings settings;
     private CubridLoadDBRepository repo;
     private boolean isMultiSchema;
+    private static final Log log = Log.getLog(CubridLoadDBSQLBuilder.class);
 
     public CubridLoadDBSQLBuilder(
         DBRProgressMonitor monitor,
@@ -81,11 +83,13 @@ public class CubridLoadDBSQLBuilder {
         // ALTER CLASS ADD ATTRIBUTE + constraints + partition
         for (CubridTable table : tables) {
             Map<String, String> collationByAttr = repo.loadCollationByAttr(table);
-
-            sb.append(String.format("ALTER CLASS %s ADD ATTRIBUTE", wrapTable(table)));
             try {
                 List<CubridTableColumn> columns = table.getAttributes(monitor);
 
+                if (columns == null || columns.isEmpty()) {
+                    continue;
+                }
+                sb.append(String.format("ALTER CLASS %s ADD ATTRIBUTE", wrapTable(table)));
                 for (CubridTableColumn column : columns) {
                     String collation = collationByAttr.get(column.getName());
                     sb.append(String.format("\n\t%s %s", wrapString(column.getName()), column.getFullTypeName()));
@@ -139,6 +143,10 @@ public class CubridLoadDBSQLBuilder {
                 String constraintType = key.getConstraintType().getName();
                 List<GenericTableConstraintColumn> cols = key.getAttributeReferences(monitor);
 
+                if (cols == null || cols.isEmpty()) {
+                    log.warn("Skipping constraint " + key.getName() + " on " + table.getName() + ": No columns found.");
+                    continue; 
+                }
                 StringBuilder colBuilder = new StringBuilder();
                 for (int i = 0; i < cols.size(); i++) {
                     colBuilder.append(wrapString(cols.get(i).getName()));
@@ -170,6 +178,10 @@ public class CubridLoadDBSQLBuilder {
         String key = partitions.get(0).getExpression();
         CubridTableColumn column = (CubridTableColumn) table.getAttribute(monitor, key);
 
+        if (column == null) {
+            return;
+        }
+
         sb.append(String.format(
             "ALTER CLASS %s PARTITION BY %s (%s)",
             wrapTable(table),
@@ -199,11 +211,20 @@ public class CubridLoadDBSQLBuilder {
                     ).append(")");
                 }
             } else {
-                sb.append(" VALUES IN ");
-                sb.append("(").append(DBPDataKind.NUMERIC == column.getDataKind()
-                    ? value
-                    : "'" + value.replaceAll(",\\s*", "', '") + "'"
-                ).append(")");
+                sb.append("(");
+                if (DBPDataKind.NUMERIC == column.getDataKind()) {
+                    sb.append(value);
+                } else {
+                    String[] parts = value.split(",\\s*");
+                    for (int i = 0; i < parts.length; i++) {
+                        sb.append(SQLUtils.quoteString(dataSource, parts[i].trim()));
+
+                        if (i < parts.length - 1) {
+                            sb.append(", ");
+                        }
+                    }
+                }
+                sb.append(")");
             }
 
             if (!CommonUtils.isEmpty(partition.getDescription())) {
@@ -325,30 +346,43 @@ public class CubridLoadDBSQLBuilder {
                             }
 
                             StringBuilder refColsBuilder = new StringBuilder();
+                            boolean foundPrimaryKey = false;
+
                             for (GenericUniqueKey key : refTab.getConstraints(monitor)) {
                                 if (key.getConstraintType() == DBSEntityConstraintType.PRIMARY_KEY) {
                                     List<GenericTableConstraintColumn> refCols = key.getAttributeReferences(monitor);
+                                    
+                                    if (refCols == null || refCols.isEmpty()) {
+                                        DBWorkbench.getPlatformUI().showError(
+                                            "FK Export Warning",
+                                            "Could not resolve referenced columns for FK: " + fk.getName() + ". Skipping."
+                                        );
+                                        break;
+                                    }
+
                                     for (int i = 0; i < refCols.size(); i++) {
                                         refColsBuilder.append(wrapString(refCols.get(i).getName()));
                                         if (i != refCols.size() - 1) {
                                             refColsBuilder.append(", ");
                                         }
                                     }
-                                    break;
+                                    foundPrimaryKey = true;
+                                    break; 
                                 }
                             }
-    
-                            sb.append(String.format(
-                                "ALTER CLASS %s ADD CONSTRAINT %s FOREIGN KEY (%s)%s REFERENCES %s(%s) ON DELETE %s ON UPDATE %s;\n\n",
-                                wrapTable(table),
-                                wrapString(fk.getName()),
-                                fkColsBuilder,
-                                isMultiSchema ? " WITH DEDUPLICATE=0" : "",
-                                wrapTable(refTab),
-                                refColsBuilder,
-                                deleteRule,
-                                updateRule
-                            ));
+
+                            if (foundPrimaryKey && refColsBuilder.length() > 0) {
+                                sb.append(String.format(
+                                    "ALTER CLASS %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)%s%s;",
+                                    wrapTable(table),
+                                    wrapString(fk.getName()),
+                                    fkColsBuilder,
+                                    wrapTable(refTab),
+                                    refColsBuilder,
+                                    deleteRule,
+                                    updateRule
+                                ));
+                            }
                         }
                     }
                 }
@@ -400,6 +434,10 @@ public class CubridLoadDBSQLBuilder {
             Map<String, String> collationByAttr = repo.loadCollationByAttr(view);
             @SuppressWarnings("unchecked")
             List<CubridTableColumn> columns = (List<CubridTableColumn>) view.getAttributes(monitor);
+
+            if (columns == null || columns.isEmpty()) {
+                return;
+            }
 
             sb.append(String.format("ALTER VCLASS %s ADD ATTRIBUTE", wrapTable(view)));
             for (CubridTableColumn column : columns) {
@@ -537,7 +575,7 @@ public class CubridLoadDBSQLBuilder {
     }
 
     public void buildData(StringBuilder sb, CubridTable table) {
-        try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource.getParentObject(), "Load data")) {
+        try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load data")) {
             String query = dataSource.wrapShardQuery("select * from " + wrapTable(table));
             try (JDBCPreparedStatement dbStat = session.prepareStatement(query);
                 JDBCResultSet dbResult = dbStat.executeQuery()) {
@@ -570,7 +608,7 @@ public class CubridLoadDBSQLBuilder {
                         } else if (numericColumns[i - 1]) {
                             sb.append(value);
                         } else {
-                            sb.append("'").append(value).append("'");
+                            sb.append("'").append(value.replace("'", "''")).append("'");
                         }
 
                         if (i != columnCount) sb.append(" ");

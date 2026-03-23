@@ -85,7 +85,7 @@ public class CubridTableSelectionWizardPage extends WizardPage {
         emptyPanel.setLayoutData(new GridData(GridData.FILL_BOTH));
 
         emptyLabel = new Label(emptyPanel, SWT.CENTER);
-        emptyLabel.setText("No tables found in this schema");
+        emptyLabel.setText("Loading...");
         emptyLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true));
 
         stackLayout.topControl = emptyPanel;
@@ -165,6 +165,7 @@ public class CubridTableSelectionWizardPage extends WizardPage {
                         stack.layout(true, true);
 
                         if (!hasTables) {
+                            emptyLabel.setText("No tables found in this schema");
                             checkedTables.clear();
                             wizard.getSettings().setTables(new ArrayList<>());
                             setPageComplete(false);
@@ -194,8 +195,11 @@ public class CubridTableSelectionWizardPage extends WizardPage {
 
         for (TableItem item : tableTables.getItems()) {
             if (item.getChecked()) {
-                checkedTables.add((CubridTable) item.getData());
-                tables.add(item.getText());
+                CubridTable table = (CubridTable) item.getData();
+                if (table != null) {
+                    checkedTables.add(table);
+                    tables.add(table.getUniqueName()); 
+                }
             }
         }
         this.wizard.getSettings().setTables(tables);
