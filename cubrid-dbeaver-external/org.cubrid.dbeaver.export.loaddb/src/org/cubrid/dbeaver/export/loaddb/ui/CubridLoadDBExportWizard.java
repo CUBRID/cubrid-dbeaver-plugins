@@ -4,13 +4,16 @@ import org.cubrid.dbeaver.export.loaddb.core.CubridLoadDBExporter;
 import org.cubrid.dbeaver.export.loaddb.model.CubridExportSettings;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.wizard.Wizard;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridUser;
+import org.eclipse.core.runtime.IStatus;
+import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
+import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
+import org.eclipse.core.runtime.Status;
+import java.util.List;
 
 public class CubridLoadDBExportWizard extends Wizard {
 
@@ -58,22 +61,43 @@ public class CubridLoadDBExportWizard extends Wizard {
             "Are you sure you want to export the selected database objects?"
         );
         if (confirmed) {
-            try {
-                ProgressMonitorDialog progressDialog = new ProgressMonitorDialog(getShell());
-                progressDialog.run(true, false, monitor -> {
-                    DBRProgressMonitor dbMonitor = new DefaultProgressMonitor(monitor);
-                    CubridLoadDBExporter export = new CubridLoadDBExporter(dbMonitor, dataSource, settings, selectedSchema);
-    	            monitor.beginTask("Generating LoadDB file...", IProgressMonitor.UNKNOWN);
-    	            export.exportLoadDB();
-    	            monitor.done();
-    	        });
-    	        MessageDialog.openInformation(getShell(), "Export Completed", "Database export finished successfully.");
-    	        DBWorkbench.getPlatformUI().showWarningNotification("Export Completed", "Database export finished successfully.");
-    	        return true;
-    	    } catch (Exception e) {
-    	        DBWorkbench.getPlatformUI().showError("Export Failed", "An error occurred during export.", e);
-    	        return false;
-    	    }
+            AbstractJob exportJob = new AbstractJob("CUBRID LoadDB Export") {
+                @Override
+                protected IStatus run(DBRProgressMonitor monitor) {
+                    try {
+                        CubridLoadDBExporter export = new CubridLoadDBExporter(monitor, dataSource, settings, selectedSchema);
+                        monitor.beginTask("Generating LoadDB file...", IProgressMonitor.UNKNOWN);
+                        export.exportLoadDB();
+                        monitor.done();
+                        
+                        if (monitor.isCanceled()) {
+                            UIUtils.asyncExec(() -> {
+                                DBWorkbench.getPlatformUI().showWarningNotification("Export Cancelled", "The database export process was cancelled by the user.");
+                            });
+                            return Status.CANCEL_STATUS;
+                        }
+
+                        List<String> errorMessages = settings.getErrorMessages();
+                        boolean hasErrors = errorMessages != null && !errorMessages.isEmpty();
+                        UIUtils.asyncExec(() -> {
+                            if (hasErrors) {
+                                DBWorkbench.getPlatformUI().showWarningNotification("Export Finished with Errors", "Database export finished with some errors. Please check the log file for details.");
+                            } else {
+                                DBWorkbench.getPlatformUI().showWarningNotification("Export Completed", "Database export finished successfully.");
+                            }
+                        });
+                        return Status.OK_STATUS;
+                    } catch (Exception e) {
+                        UIUtils.asyncExec(() -> {
+                            DBWorkbench.getPlatformUI().showError("Export Failed", "An error occurred during export.", e);
+                        });
+                        return Status.CANCEL_STATUS;
+                    }
+                }
+            };
+            exportJob.setUser(true);
+            exportJob.schedule();
+            return true;
         }
         return false;
     }

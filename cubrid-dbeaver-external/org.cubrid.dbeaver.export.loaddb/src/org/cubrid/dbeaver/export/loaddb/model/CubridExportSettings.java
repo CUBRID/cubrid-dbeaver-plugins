@@ -15,6 +15,15 @@ public class CubridExportSettings {
     private boolean isSplitSchemaFile = false;
     private boolean isExportStartValue = true;
     private String outputFolderPattern;
+    private final List<String> errorMessages = new ArrayList<>();
+
+    public void addError(String message) {
+        errorMessages.add(message);
+    }
+
+    public List<String> getErrorMessages() {
+        return errorMessages;
+    }
 
     public List<CubridExportObjectInfo> getExportObjects() {
         return exportObjects;

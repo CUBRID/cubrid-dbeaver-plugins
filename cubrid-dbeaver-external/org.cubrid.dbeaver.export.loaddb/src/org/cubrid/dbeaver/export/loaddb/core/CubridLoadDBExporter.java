@@ -13,6 +13,7 @@ import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
 public class CubridLoadDBExporter {
 
+    private DBRProgressMonitor monitor;
     private CubridExportSettings settings;
     private CubridLoadDBRepository repo;
     private CubridLoadDBSQLBuilder sql;
@@ -26,6 +27,7 @@ public class CubridLoadDBExporter {
         CubridExportSettings settings,
         CubridUser selectedSchema
     ) {
+        this.monitor = monitor;
         this.settings = settings;
         this.repo = new CubridLoadDBRepository(monitor, dataSource, settings, selectedSchema);
         this.sql = new CubridLoadDBSQLBuilder(monitor, dataSource, settings, repo);
@@ -40,6 +42,7 @@ public class CubridLoadDBExporter {
         String charset = settings.getCharset();
 
         for (CubridExportObjectInfo co : items) {
+            if (monitor.isCanceled()) return;
             if (!co.isExport()) {
                 continue;
             }
@@ -56,9 +59,27 @@ public class CubridLoadDBExporter {
                 case "Data":
                     exportData(co, charset);
                     break;
-                default:
             }
         }
+        generateReport();
+    }
+
+    private void generateReport() {
+        List<String> errors = settings.getErrorMessages();
+        if (errors.isEmpty()) {
+            return;
+        }
+
+        String outputFolder = settings.getOutputFolderPattern();
+        String reportFileName = outputFolder + java.io.File.separator + "loaddb_export_results.log";
+        StringBuilder sb = new StringBuilder();
+        sb.append("CUBRID LoadDB Export Results Report\n");
+        sb.append("===================================\n\n");
+        for (String error : errors) {
+            sb.append("- ").append(error).append("\n");
+        }
+
+        repo.saveFile(sb, reportFileName, settings.getCharset());
     }
 
     public void exportSchema(CubridExportObjectInfo info, String charset) {
@@ -107,6 +128,7 @@ public class CubridLoadDBExporter {
         StringBuilder sb = new StringBuilder();
 
         for (CubridTable table : tables) {
+            if (monitor.isCanceled()) return;
             sql.buildIndex(sb, table);
         }
         if (sb.length() > 0) {
@@ -130,6 +152,7 @@ public class CubridLoadDBExporter {
         String fileName = settings.getOutputFile(info);
         StringBuilder sb = new StringBuilder();
         for (CubridTable table : tables) {
+            if (monitor.isCanceled()) return;
             sql.buildData(sb, table);
             if (sb.length() > FLUSH_THRESHOLD) {
                 repo.appendFile(sb, fileName, charset);

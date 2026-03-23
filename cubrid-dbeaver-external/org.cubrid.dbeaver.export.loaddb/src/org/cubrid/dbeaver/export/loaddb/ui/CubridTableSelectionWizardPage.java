@@ -19,6 +19,7 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
+import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridUser;
 import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
@@ -26,7 +27,6 @@ import org.jkiss.dbeaver.ext.generic.model.GenericTable;
 import org.jkiss.dbeaver.model.DBIcon;
 import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.ui.DBeaverIcons;
 import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.ui.controls.CustomSashForm;
@@ -91,6 +91,8 @@ public class CubridTableSelectionWizardPage extends WizardPage {
         stackLayout.topControl = emptyPanel;
         stack.layout(true, true);
 
+        loadTables();
+
         selectAllButton = new Button(catPanel, SWT.CHECK);
         selectAllButton.setText("Select All");
         selectAllButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
@@ -114,29 +116,41 @@ public class CubridTableSelectionWizardPage extends WizardPage {
             }
         });
 
-        loadTables();
         setControl(composite);
     }
 
     private void loadTables() {
-        new AbstractJob("Load tables") {
-            {
-                setUser(true);
-            }
-
+        emptyLabel.setText("Loading tables...");
+        AbstractJob loadTables = new AbstractJob("Load tables") {
             @Override
             protected IStatus run(DBRProgressMonitor monitor) {
                 try {
-                    final List<? extends GenericTable> tables;
+                    final List<GenericTable> allTables = new ArrayList<>();
 
                     if (selectedSchema != null) {
-                        tables = selectedSchema.getPhysicalTables(monitor);
+                        allTables.addAll(selectedSchema.getPhysicalTables(monitor));
                     } else {
-                        List<GenericTable> all = new ArrayList<>();
-                        for (GenericSchema schema : wizard.getSettings().getDataSource().getCubridUsers(monitor)) {
-                            all.addAll(schema.getPhysicalTables(monitor));
+                        CubridDataSource ds = wizard.getSettings().getDataSource();
+                        if (ds != null) {
+                            List<GenericSchema> users = null;
+                            for (int i = 0; i < 10; i++) {
+                                if (monitor.isCanceled())
+                                    return Status.CANCEL_STATUS;
+                                users = ds.getCubridUsers(monitor);
+                                if (users != null)
+                                    break;
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    return Status.CANCEL_STATUS;
+                                }
+                            }
+                            if (users != null) {
+                                for (GenericSchema schema : users) {
+                                    allTables.addAll(schema.getPhysicalTables(monitor));
+                                }
+                            }
                         }
-                        tables = all;
                     }
 
                     UIUtils.syncExec(() -> {
@@ -146,42 +160,45 @@ public class CubridTableSelectionWizardPage extends WizardPage {
 
                         tableTables.removeAll();
 
-                        for (GenericTable t : tables) {
-                            CubridTable ct = (CubridTable) t;
-
-                            TableItem item = new TableItem(tableTables, SWT.NONE);
-                            item.setImage(DBeaverIcons.getImage(DBIcon.TREE_TABLE));
-                            item.setText(ct.getUniqueName());
-                            item.setData(ct);
-                            item.setChecked(checkedTables.contains(ct));
+                        for (GenericTable t : allTables) {
+                            if (t instanceof CubridTable) {
+                                CubridTable ct = (CubridTable) t;
+                                TableItem item = new TableItem(tableTables, SWT.NONE);
+                                item.setImage(DBeaverIcons.getImage(DBIcon.TREE_TABLE));
+                                item.setText(ct.getUniqueName());
+                                item.setData(ct);
+                                item.setChecked(checkedTables.contains(ct));
+                            }
                         }
 
                         boolean hasTables = tableTables.getItemCount() > 0;
-
                         selectAllButton.setEnabled(hasTables);
                         selectAllButton.setSelection(false);
 
                         stackLayout.topControl = hasTables ? tablePanel : emptyPanel;
-                        stack.layout(true, true);
-
                         if (!hasTables) {
                             emptyLabel.setText("No tables found in this schema");
-                            checkedTables.clear();
-                            wizard.getSettings().setTables(new ArrayList<>());
-                            setPageComplete(false);
                         }
+                        stack.layout(true, true);
+                        updateState();
                     });
 
                     return Status.OK_STATUS;
 
                 } catch (Exception e) {
-                    UIUtils.syncExec(() ->
-                        DBWorkbench.getPlatformUI().showError("Table List", "Can't read Table list", e)
-                    );
+                    UIUtils.syncExec(() -> {
+                        if (emptyLabel != null && !emptyLabel.isDisposed()) {
+                            emptyLabel.setText("Error loading tables: " + e.getMessage());
+                            stackLayout.topControl = emptyPanel;
+                            stack.layout(true, true);
+                        }
+                    });
                     return Status.CANCEL_STATUS;
                 }
             }
-        }.schedule();
+        };
+        loadTables.setUser(true);
+        loadTables.schedule();
     }
 
     protected void updateState() {
@@ -198,7 +215,7 @@ public class CubridTableSelectionWizardPage extends WizardPage {
                 CubridTable table = (CubridTable) item.getData();
                 if (table != null) {
                     checkedTables.add(table);
-                    tables.add(table.getUniqueName()); 
+                    tables.add(table.getUniqueName());
                 }
             }
         }

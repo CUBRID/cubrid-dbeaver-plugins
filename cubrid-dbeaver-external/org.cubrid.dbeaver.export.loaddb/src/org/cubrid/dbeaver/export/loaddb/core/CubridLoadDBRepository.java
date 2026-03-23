@@ -25,7 +25,6 @@ import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
 
 public class CubridLoadDBRepository {
 
@@ -57,12 +56,13 @@ public class CubridLoadDBRepository {
         List<CubridUser> users = new ArrayList<>();
         try {
             for (GenericSchema schema : dataSource.getCubridUsers(monitor)) {
+                if (monitor.isCanceled()) break;
                 if (schema instanceof CubridUser user) {
                     users.add(user);
                 }
             }
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Load User", "Can't read user list", e);
+            settings.addError("Load User: Can't read user list - " + e.getMessage());
         }
         return users;
     }
@@ -71,6 +71,7 @@ public class CubridLoadDBRepository {
         List<CubridTable> tables = new ArrayList<>();
         try {
             for (String name : settings.getTables()) {
+                if (monitor.isCanceled()) break;
                 String[] values = name.split("\\.");
                 if (values.length == 2) {
                     CubridUser user = (CubridUser) dataSource.getSchema(values[0]);
@@ -87,7 +88,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Load Table", "Can't read table list", e);
+            settings.addError("Load Table: Can't read table list - " + e.getMessage());
         }
         return tables;
     }
@@ -96,14 +97,16 @@ public class CubridLoadDBRepository {
         List<CubridSequence> serials = new ArrayList<>();
         try {
             for (CubridUser user : users) {
+                if (monitor.isCanceled()) break;
                 for (GenericSequence sequence : user.getSequences(monitor)) {
+                    if (monitor.isCanceled()) break;
                     if (sequence instanceof CubridSequence serial) {
                         serials.add(serial);
                     }
                 }
             }
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Load Serial", "Can't read serial list", e);
+            settings.addError("Load Serial: Can't read serial list - " + e.getMessage());
         }
         return serials;
     }
@@ -135,7 +138,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (Exception e) {
-            DBWorkbench.getPlatformUI().showError("Column Collation", "Can't read column collation", e);
+            settings.addError("Column Collation: Can't read column collation for table " + table.getName() + " - " + e.getMessage());
         }
 
         collationCache.put(cacheKey, collationByAttr);
@@ -174,7 +177,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (Exception e) {
-            DBWorkbench.getPlatformUI().showError("Serial Extra Info", "Can't serial extra info", e);
+            settings.addError("Serial Extra Info: Can't read serial extra info for " + serial.getName() + " - " + e.getMessage());
         }
 
         serialExtraCache.put(key, extra);
@@ -213,7 +216,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (Exception e) {
-            DBWorkbench.getPlatformUI().showError("View Query", "Can't read view metadata", e);
+            settings.addError("View Query: Can't read view metadata for " + view.getName() + " - " + e.getMessage());
         }
         return null;
     }
@@ -227,7 +230,7 @@ public class CubridLoadDBRepository {
         ) {
             w.write(builder.toString());
         } catch (Exception e) {
-            DBWorkbench.getPlatformUI().showError("Error saving file", "Error while writing file", e);
+            settings.addError("Error saving file: Error while writing file " + fileName + " - " + e.getMessage());
         }
     }
 
