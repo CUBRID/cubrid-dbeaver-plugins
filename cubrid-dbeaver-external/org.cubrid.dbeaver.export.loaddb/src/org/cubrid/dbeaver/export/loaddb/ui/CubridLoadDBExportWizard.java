@@ -67,27 +67,34 @@ public class CubridLoadDBExportWizard extends Wizard {
                     try {
                         CubridLoadDBExporter export = new CubridLoadDBExporter(monitor, dataSource, settings, selectedSchema);
                         monitor.beginTask("Generating LoadDB file...", IProgressMonitor.UNKNOWN);
+                        
                         export.exportLoadDB();
-                        monitor.done();
                         
                         if (monitor.isCanceled()) {
                             UIUtils.asyncExec(() -> {
                                 DBWorkbench.getPlatformUI().showWarningNotification("Export Cancelled", "The database export process was cancelled by the user.");
                             });
+                            monitor.done();
                             return Status.CANCEL_STATUS;
                         }
 
                         List<String> errorMessages = settings.getErrorMessages();
                         boolean hasErrors = errorMessages != null && !errorMessages.isEmpty();
+ 
                         UIUtils.asyncExec(() -> {
                             if (hasErrors) {
-                                DBWorkbench.getPlatformUI().showWarningNotification("Export Finished with Errors", "Database export finished with some errors. Please check the log file for details.");
+                                DBWorkbench.getPlatformUI().showWarningNotification("Export Finished with Errors", "Check the log file for details.");
                             } else {
                                 DBWorkbench.getPlatformUI().showWarningNotification("Export Completed", "Database export finished successfully.");
                             }
                         });
+
+                        monitor.done(); 
                         return Status.OK_STATUS;
+
                     } catch (Exception e) {
+                        if (monitor != null) monitor.done(); 
+                        
                         UIUtils.asyncExec(() -> {
                             DBWorkbench.getPlatformUI().showError("Export Failed", "An error occurred during export.", e);
                         });

@@ -339,6 +339,10 @@ public class CubridLoadDBSQLBuilder {
                             String updateRule = fk.getUpdateRule().getName().toUpperCase();
                             CubridTable refTab = (CubridTable) fk.getReferencedTable();
 
+                            if (refTab == null) {
+                                settings.addError("FK Export Error: Referenced table for " + fk.getName() + " could not be found.");
+                                continue;
+                            }
                             List<GenericTableForeignKeyColumnTable> fkCols = fk.getAttributeReferences(monitor);
                             if (fkCols == null || fkCols.isEmpty()) {
                                 continue;
@@ -360,10 +364,8 @@ public class CubridLoadDBSQLBuilder {
                                     List<GenericTableConstraintColumn> refCols = key.getAttributeReferences(monitor);
 
                                     if (refCols == null || refCols.isEmpty()) {
-                                        settings.addError(
-                                                "FK Export Warning: Could not resolve referenced columns for FK: "
-                                                        + fk.getName() + " on table " + table.getName()
-                                                        + ". Skipping.");
+                                        settings.addError("FK Export Warning: Could not resolve referenced columns for FK: "
+                                                        + fk.getName() + " on table " + table.getName() + ". Skipping.");
                                         break;
                                     }
 
@@ -380,14 +382,16 @@ public class CubridLoadDBSQLBuilder {
 
                             if (foundPrimaryKey && refColsBuilder.length() > 0) {
                                 sb.append(String.format(
-                                        "ALTER CLASS %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s (%s)%s%s;",
+                                        "ALTER CLASS %s ADD CONSTRAINT %s FOREIGN KEY (%s)%s REFERENCES %s (%s) ON DELETE %s ON UPDATE %s;\n\n",
                                         wrapTable(table),
                                         wrapString(fk.getName()),
-                                        fkColsBuilder,
+                                        fkColsBuilder.toString(),
+                                        isMultiSchema ? " WITH DEDUPLICATE=0" : "",
                                         wrapTable(refTab),
-                                        refColsBuilder,
+                                        refColsBuilder.toString(),
                                         deleteRule,
-                                        updateRule));
+                                        updateRule
+                                ));
                             }
                         }
                     }

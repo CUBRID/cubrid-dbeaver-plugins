@@ -1,5 +1,6 @@
 package org.cubrid.dbeaver.export.loaddb.core;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,11 +71,15 @@ public class CubridLoadDBExporter {
             return;
         }
 
+        String timeStamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
         String outputFolder = settings.getOutputFolderPattern();
-        String reportFileName = outputFolder + java.io.File.separator + "loaddb_export_results.log";
+        String reportFileName = outputFolder + File.separator + "loaddb_export_results_" + timeStamp + ".log";
+
         StringBuilder sb = new StringBuilder();
         sb.append("CUBRID LoadDB Export Results Report\n");
+        sb.append("Generated on: ").append(new java.util.Date().toString()).append("\n");
         sb.append("===================================\n\n");
+
         for (String error : errors) {
             sb.append("- ").append(error).append("\n");
         }
@@ -146,21 +151,25 @@ public class CubridLoadDBExporter {
             repo.saveFile(sb, fileName, charset);
         }
     }
-    
+
     public void exportData(CubridExportObjectInfo info, String charset) {
         final int FLUSH_THRESHOLD = 16 * 1024 * 1024; // 16 MB threshold
         String fileName = settings.getOutputFile(info);
         StringBuilder sb = new StringBuilder();
+        repo.saveFile(new StringBuilder(""), fileName, charset); 
+
         for (CubridTable table : tables) {
             if (monitor.isCanceled()) return;
             sql.buildData(sb, table);
+            
             if (sb.length() > FLUSH_THRESHOLD) {
                 repo.appendFile(sb, fileName, charset);
                 sb.setLength(0);
             }
         }
+
         if (sb.length() > 0) {
-            repo.saveFile(sb, fileName, charset);
+            repo.appendFile(sb, fileName, charset);
         }
     }
 }
