@@ -56,13 +56,15 @@ public class CubridLoadDBRepository {
         List<CubridUser> users = new ArrayList<>();
         try {
             for (GenericSchema schema : dataSource.getCubridUsers(monitor)) {
-                if (monitor.isCanceled()) break;
+                if (monitor.isCanceled()) {
+                    break;
+                }
                 if (schema instanceof CubridUser user) {
                     users.add(user);
                 }
             }
         } catch (DBException e) {
-            settings.addError("Load User: Can't read user list - " + e.getMessage());
+            settings.addError("User: Can't read list - " + e.getMessage());
         }
         return users;
     }
@@ -71,7 +73,9 @@ public class CubridLoadDBRepository {
         List<CubridTable> tables = new ArrayList<>();
         try {
             for (String name : settings.getTables()) {
-                if (monitor.isCanceled()) break;
+                if (monitor.isCanceled()) {
+                    break;
+                }
                 String[] values = name.split("\\.");
                 if (values.length == 2) {
                     CubridUser user = (CubridUser) dataSource.getSchema(values[0]);
@@ -88,7 +92,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (DBException e) {
-            settings.addError("Load Table: Can't read table list - " + e.getMessage());
+            settings.addError("Table: Can't read list - " + e.getMessage());
         }
         return tables;
     }
@@ -97,16 +101,20 @@ public class CubridLoadDBRepository {
         List<CubridSequence> serials = new ArrayList<>();
         try {
             for (CubridUser user : users) {
-                if (monitor.isCanceled()) break;
+                if (monitor.isCanceled()) {
+                    break;
+                }
                 for (GenericSequence sequence : user.getSequences(monitor)) {
-                    if (monitor.isCanceled()) break;
+                    if (monitor.isCanceled()) {
+                        break;
+                    }
                     if (sequence instanceof CubridSequence serial) {
                         serials.add(serial);
                     }
                 }
             }
         } catch (DBException e) {
-            settings.addError("Load Serial: Can't read serial list - " + e.getMessage());
+            settings.addError("Serial: Can't read list - " + e.getMessage());
         }
         return serials;
     }
@@ -138,7 +146,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (Exception e) {
-            settings.addError("Column Collation: Can't read column collation for table " + table.getName() + " - " + e.getMessage());
+            settings.addError("Collation: Can't read column collation for " + (table instanceof CubridView ? "view " : "table ") + table.getName() + " - " + e.getMessage());
         }
 
         collationCache.put(cacheKey, collationByAttr);
@@ -177,7 +185,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (Exception e) {
-            settings.addError("Serial Extra Info: Can't read serial extra info for " + serial.getName() + " - " + e.getMessage());
+            settings.addError("Serial: Can't read extra info for " + serial.getName() + " - " + e.getMessage());
         }
 
         serialExtraCache.put(key, extra);
@@ -203,7 +211,7 @@ public class CubridLoadDBRepository {
         return null;
     }
 
-    public String loadCreateViewDDL(CubridView view) {
+    public String loadCreateViewDDL(CubridView view) throws DBException {
         try (JDBCSession session = DBUtils.openMetaSession(monitor, view, "Load view ddl")) {
             String sql = String.format("show create view %s", view.getFullyQualifiedName(DBPEvaluationContext.DDL));
             sql = dataSource.wrapShardQuery(sql);
@@ -216,7 +224,7 @@ public class CubridLoadDBRepository {
                 }
             }
         } catch (Exception e) {
-            settings.addError("View Query: Can't read view metadata for " + view.getName() + " - " + e.getMessage());
+            throw new DBException("Can't read DDL", e);
         }
         return null;
     }
@@ -230,7 +238,7 @@ public class CubridLoadDBRepository {
         ) {
             w.write(builder.toString());
         } catch (Exception e) {
-            settings.addError("Error saving file: Error while writing file " + fileName + " - " + e.getMessage());
+            settings.addError("File: Writing failed for " + fileName + " - " + e.getMessage());
         }
     }
 

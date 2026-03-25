@@ -4,9 +4,9 @@ import java.sql.ResultSetMetaData;
 import java.util.List;
 import java.util.Map;
 
+import org.cubrid.dbeaver.export.loaddb.core.CubridLoadDBRepository.SerialExtraInfo;
 import org.cubrid.dbeaver.export.loaddb.model.CubridExportSettings;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridPartition;
 import org.jkiss.dbeaver.ext.cubrid.model.CubridSequence;
@@ -41,7 +41,6 @@ public class CubridLoadDBSQLBuilder {
     private CubridExportSettings settings;
     private CubridLoadDBRepository repo;
     private boolean isMultiSchema;
-    private static final Log log = Log.getLog(CubridLoadDBSQLBuilder.class);
 
     public CubridLoadDBSQLBuilder(
         DBRProgressMonitor monitor,
@@ -59,37 +58,39 @@ public class CubridLoadDBSQLBuilder {
     public void buildTable(StringBuilder sb, List<CubridTable> tables, List<CubridSequence> serials) {
         // CREATE CLASS
         for (CubridTable table : tables) {
-            if (monitor.isCanceled())
+            if (monitor.isCanceled()) {
                 break;
-            String isReuseOID = table.isReuseOID() ? "REUSE_OID" : "DONT_REUSE_OID";
-            sb.append(String.format(
-                    "CREATE CLASS %s %s, COLLATE %s%s;\n",
-                    wrapTable(table),
-                    isReuseOID,
-                    table.getCollation().getName(),
-                    CommonUtils.isEmpty(table.getDescription())
-                            ? ""
-                            : " COMMENT " + SQLUtils.quoteString(table, table.getDescription())));
-            if (!isMultiSchema) {
-                sb.append(String.format(
-                        "call [change_owner]('%s', '%s') on class [db_root];\n",
-                        table.getName(),
-                        table.getSchema().getName()));
             }
-            sb.append(System.lineSeparator());
+            try {
+                String isReuseOID = table.isReuseOID() ? "REUSE_OID" : "DONT_REUSE_OID";
+                sb.append(String.format("CREATE CLASS %s %s, %s%s;\n",
+                        wrapTable(table),
+                        isReuseOID,
+                        table.getCollation() != null ? ", COLLATE " + table.getCollation().getName() : "",
+                        CommonUtils.isEmpty(table.getDescription()) ? "" : " COMMENT " + SQLUtils.quoteString(table, table.getDescription())
+                ));
+                if (!isMultiSchema) {
+                    sb.append(String.format("call [change_owner]('%s', '%s') on class [db_root];\n", table.getName(), table.getSchema().getName()));
+                }
+                sb.append(System.lineSeparator());
+            } catch (Exception e) {
+                settings.addError("Table: Can't generate CREATE CLASS for " + wrapTable(table) + " - " + e.getMessage());
+            }
         }
 
         // ALTER CLASS ADD ATTRIBUTE + constraints + partition
         for (CubridTable table : tables) {
-            if (monitor.isCanceled())
+            if (monitor.isCanceled()) {
                 break;
-            Map<String, String> collationByAttr = repo.loadCollationByAttr(table);
+            }
             try {
+                Map<String, String> collationByAttr = repo.loadCollationByAttr(table);
                 List<CubridTableColumn> columns = table.getAttributes(monitor);
 
                 if (columns == null || columns.isEmpty()) {
                     continue;
                 }
+
                 sb.append(String.format("ALTER CLASS %s ADD ATTRIBUTE", wrapTable(table)));
                 for (CubridTableColumn column : columns) {
                     String collation = collationByAttr.get(column.getName());
@@ -102,8 +103,7 @@ public class CubridLoadDBSQLBuilder {
                     if (column.isAutoIncrement()) {
                         CubridSequence serial = repo.findSerial(table, column.getName(), serials);
                         if (serial != null) {
-                            sb.append(String.format(" AUTO_INCREMENT(%s, %s)", serial.getMinValue(),
-                                    serial.getIncrementBy()));
+                            sb.append(String.format(" AUTO_INCREMENT(%s, %s)", serial.getMinValue(), serial.getIncrementBy()));
                         }
                     }
 
@@ -126,9 +126,8 @@ public class CubridLoadDBSQLBuilder {
                 if (table.isPartitioned()) {
                     buildPartition(sb, table);
                 }
-            } catch (DBException e) {
-                settings.addError("Table Column List: Can't read column list for table " + table.getName() + " - "
-                        + e.getMessage());
+            } catch (Exception e) {
+                settings.addError("Table: Can't read metadata for " + wrapTable(table) + " - " + e.getMessage());
             }
         }
 
@@ -143,13 +142,14 @@ public class CubridLoadDBSQLBuilder {
             }
 
             for (GenericUniqueKey key : keys) {
-                if (monitor.isCanceled())
+                if (monitor.isCanceled()) {
                     break;
+                }
                 String constraintType = key.getConstraintType().getName();
                 List<GenericTableConstraintColumn> cols = key.getAttributeReferences(monitor);
 
                 if (cols == null || cols.isEmpty()) {
-                    log.warn("Skipping constraint " + key.getName() + " on " + table.getName() + ": No columns found.");
+                    settings.addError("Constraint: Skipping " + wrapString(key.getName()) + " on table " + wrapTable(table) + ": No columns found.");
                     continue;
                 }
                 StringBuilder colBuilder = new StringBuilder();
@@ -160,22 +160,22 @@ public class CubridLoadDBSQLBuilder {
                     }
                 }
 
-                sb.append(String.format(
-                        "ALTER CLASS %s ADD ATTRIBUTE \n\tCONSTRAINT %s %s (%s);\n",
+                sb.append(String.format("ALTER CLASS %s ADD ATTRIBUTE \n\tCONSTRAINT %s %s (%s);\n",
                         wrapTable(table),
                         wrapString(key.getName()),
                         constraintType,
-                        colBuilder));
+                        colBuilder
+                ));
             }
         } catch (DBException e) {
-            settings.addError("Constraints List: Can't read constraint list for table " + table.getName() + " - "
-                    + e.getMessage());
+            settings.addError("Constraint: Can't read list for table " + wrapTable(table) + " - " + e.getMessage());
         }
     }
 
     private void buildPartition(StringBuilder sb, CubridTable table) throws DBException {
         List<CubridPartition> partitions = table.getPartitions(monitor);
         if (partitions == null || partitions.isEmpty()) {
+            settings.addError("Partition: Table " + wrapTable(table) + " is marked as partitioned, but no metadata was found.");
             return;
         }
 
@@ -184,14 +184,11 @@ public class CubridLoadDBSQLBuilder {
         CubridTableColumn column = (CubridTableColumn) table.getAttribute(monitor, key);
 
         if (column == null) {
+            settings.addError("Partition: Key column " + wrapString(key) + " not found for table " + wrapTable(table));
             return;
         }
 
-        sb.append(String.format(
-                "ALTER CLASS %s PARTITION BY %s (%s)",
-                wrapTable(table),
-                type,
-                wrapString(key)));
+        sb.append(String.format("ALTER CLASS %s PARTITION BY %s (%s)", wrapTable(table), type, wrapString(key)));
 
         if ("HASH".equals(type)) {
             sb.append(" PARTITIONS ").append(partitions.size()).append(";\n\n");
@@ -200,8 +197,9 @@ public class CubridLoadDBSQLBuilder {
 
         sb.append(" (");
         for (CubridPartition partition : partitions) {
-            if (monitor.isCanceled())
+            if (monitor.isCanceled()) {
                 break;
+            }
             String value = partition.getExpressionValues();
 
             sb.append("\n\tPARTITION ").append(wrapString(partition.getPartitionName()));
@@ -211,9 +209,7 @@ public class CubridLoadDBSQLBuilder {
                 if ("MAXVALUE".equalsIgnoreCase(value)) {
                     sb.append("MAXVALUE");
                 } else {
-                    sb.append("(").append(DBPDataKind.NUMERIC == column.getDataKind()
-                            ? value
-                            : SQLUtils.quoteString(partition, value)).append(")");
+                    sb.append("(").append(DBPDataKind.NUMERIC == column.getDataKind() ? value : SQLUtils.quoteString(partition, value)).append(")");
                 }
             } else {
                 sb.append("(");
@@ -245,79 +241,86 @@ public class CubridLoadDBSQLBuilder {
     private void buildSerial(StringBuilder sb, List<CubridTable> tables, List<CubridSequence> serials) {
         // ALTER SERIAL START WITH
         for (CubridSequence serial : serials) {
-            if (monitor.isCanceled())
+            if (monitor.isCanceled()) {
                 break;
-            CubridLoadDBRepository.SerialExtraInfo extra = repo.loadSerialExtraInfo(serial);
-            String className = extra.className;
-            boolean isStarted = extra.started;
-
-            if (className == null) {
-                continue;
             }
-            if (!settings.isExportStartValue()) {
-                continue;
-            }
+            try {
+                SerialExtraInfo extra = repo.loadSerialExtraInfo(serial);
+                String className = extra.className;
+                boolean isStarted = extra.started;
 
-            CubridTable matchedTable = null;
-            for (CubridTable table : tables) {
-                if (className.equalsIgnoreCase(table.getName())) {
-                    matchedTable = table;
-                    break;
+                if (className == null || !settings.isExportStartValue()) {
+                    continue;
                 }
-            }
-            if (matchedTable == null) {
-                continue;
-            }
-            if (isMultiSchema && !matchedTable.getSchema().equals(serial.getOwner())) {
-                continue;
-            }
 
-            sb.append(String.format(
-                    "ALTER SERIAL %s START WITH %s;\n",
-                    serialUniqueName(serial),
-                    serial.getStartValue()));
-            if (isStarted) {
-                sb.append(String.format("SELECT %s.NEXT_VALUE;\n", serialUniqueName(serial)));
+                CubridTable matchedTable = null;
+                for (CubridTable table : tables) {
+                    if (className.equalsIgnoreCase(table.getName())) {
+                        matchedTable = table;
+                        break;
+                    }
+                }
+                if (matchedTable == null) {
+                    continue;
+                }
+                if (isMultiSchema && !matchedTable.getSchema().equals(serial.getOwner())) {
+                    continue;
+                }
+
+                sb.append(String.format("ALTER SERIAL %s START WITH %s;\n", serialUniqueName(serial), serial.getStartValue()));
+                if (isStarted) {
+                    sb.append(String.format("SELECT %s.NEXT_VALUE;\n", serialUniqueName(serial)));
+                }
+                sb.append(System.lineSeparator());
+            } catch (Exception e) {
+                settings.addError("Serial: Can't read extra info for " + serialUniqueName(serial) + " - " + e.getMessage());
             }
-            sb.append(System.lineSeparator());
         }
 
         // CREATE SERIAL
         for (CubridSequence serial : serials) {
-            if (monitor.isCanceled())
+            if (monitor.isCanceled()) {
                 break;
-            CubridLoadDBRepository.SerialExtraInfo extra = repo.loadSerialExtraInfo(serial);
-            if (extra.className != null) {
-                continue;
             }
+            try {
+                CubridLoadDBRepository.SerialExtraInfo extra = repo.loadSerialExtraInfo(serial);
+                if (extra.className != null) {
+                    continue;
+                }
 
-            sb.append(String.format(
-                    "CREATE SERIAL %s \n\tSTART WITH %s \n\tINCREMENT BY %s \n\tMINVALUE %s \n\tMAXVALUE %s \n\t%s \n\t%s%s;\n",
-                    serialUniqueName(serial),
-                    serial.getStartValue(),
-                    serial.getIncrementBy(),
-                    serial.getMinValue(),
-                    serial.getMaxValue(),
-                    serial.getCycle() ? "CYCLE" : "NOCYCLE",
-                    serial.getCachedNum() == 0 ? "NOCACHE" : "CACHE " + serial.getCachedNum(),
-                    (serial.getDescription() == null || serial.getDescription().isEmpty())
-                        ? "" : " \n\tCOMMENT " + SQLUtils.quoteString(dataSource, CommonUtils.notEmpty(serial.getDescription()))));
-
-            if (!isMultiSchema) {
                 sb.append(String.format(
-                        "call [change_serial_owner] (%s, %s) on class [db_serial];\n",
-                        SQLUtils.quoteString(dataSource, serial.getName()),
-                        SQLUtils.quoteString(dataSource, serial.getOwner().getName())));
-            }
+                        "CREATE SERIAL %s \n\tSTART WITH %s \n\tINCREMENT BY %s \n\tMINVALUE %s \n\tMAXVALUE %s \n\t%s \n\t%s%s;\n",
+                        serialUniqueName(serial),
+                        serial.getStartValue(),
+                        serial.getIncrementBy(),
+                        serial.getMinValue(),
+                        serial.getMaxValue(),
+                        serial.getCycle() ? "CYCLE" : "NOCYCLE",
+                        serial.getCachedNum() == 0 ? "NOCACHE" : "CACHE " + serial.getCachedNum(),
+                        (serial.getDescription() == null || serial.getDescription().isEmpty())
+                                ? "" : " \n\tCOMMENT " + SQLUtils.quoteString(dataSource,
+                                CommonUtils.notEmpty(serial.getDescription()))
+                ));
 
-            sb.append(System.lineSeparator());
+                if (!isMultiSchema) {
+                    sb.append(String.format("call [change_serial_owner] (%s, %s) on class [db_serial];\n",
+                            SQLUtils.quoteString(dataSource, serial.getName()),
+                            SQLUtils.quoteString(dataSource, serial.getOwner().getName())
+                    ));
+                }
+
+                sb.append(System.lineSeparator());
+            } catch (Exception e) {
+                settings.addError("Serial: Can't read definition for " + serialUniqueName(serial) + " - " + e.getMessage());
+            }
         }
     }
 
     public void buildForeignKey(StringBuilder sb, List<CubridTable> tables) {
         for (CubridTable table : tables) {
-            if (monitor.isCanceled())
+            if (monitor.isCanceled()) {
                 break;
+            }
             String query = "SELECT * FROM db_index WHERE is_foreign_key = 'YES' AND class_name = ?"
                     + (isMultiSchema ? " AND owner_name = ?" : "");
             query = dataSource.wrapShardQuery(query);
@@ -333,6 +336,7 @@ public class CubridLoadDBSQLBuilder {
                             String fkName = JDBCUtils.safeGetString(dbResult, "index_name");
                             GenericTableForeignKey fk = table.getAssociation(monitor, fkName);
                             if (fk == null) {
+                                settings.addError("Foreign Key: Missing association for " + wrapString(fkName) + " on " + wrapTable(table) + ".");
                                 continue;
                             }
                             String deleteRule = fk.getDeleteRule().getName().toUpperCase();
@@ -340,11 +344,12 @@ public class CubridLoadDBSQLBuilder {
                             CubridTable refTab = (CubridTable) fk.getReferencedTable();
 
                             if (refTab == null) {
-                                settings.addError("FK Export Error: Referenced table for " + fk.getName() + " could not be found.");
+                                settings.addError("Foreign Key: Referenced table for " + wrapString(fk.getName()) + " could not be found.");
                                 continue;
                             }
                             List<GenericTableForeignKeyColumnTable> fkCols = fk.getAttributeReferences(monitor);
                             if (fkCols == null || fkCols.isEmpty()) {
+                                settings.addError("Foreign Key: No columns found for " + wrapString(fk.getName()) + " on table " + wrapTable(table) + ".");
                                 continue;
                             }
 
@@ -364,8 +369,8 @@ public class CubridLoadDBSQLBuilder {
                                     List<GenericTableConstraintColumn> refCols = key.getAttributeReferences(monitor);
 
                                     if (refCols == null || refCols.isEmpty()) {
-                                        settings.addError("FK Export Warning: Could not resolve referenced columns for FK: "
-                                                        + fk.getName() + " on table " + table.getName() + ". Skipping.");
+                                        settings.addError("Foreign Key: Could not resolve referenced columns for " + wrapString(fk.getName())
+                                                + " on table " + wrapTable(table) + ". Skipping.");
                                         break;
                                     }
 
@@ -392,102 +397,106 @@ public class CubridLoadDBSQLBuilder {
                                         deleteRule,
                                         updateRule
                                 ));
+                            } else {
+                                settings.addError("Foreign Key: Could not find Primary Key for referenced table " + wrapTable(refTab) + ".");
                             }
                         }
                     }
                 }
             } catch (Exception e) {
-                settings.addError("Foreign Key List: Can't read foreign key list for table " + table.getName() + " - "
-                        + e.getMessage());
+                settings.addError("Foreign Key: Can't read list for table " + wrapTable(table) + " - " + e.getMessage());
             }
         }
     }
 
     public void buildView(StringBuilder sb, List<CubridUser> users) {
-        try {
-            for (CubridUser user : users) {
-                if (monitor.isCanceled())
-                    break;
+        for (CubridUser user : users) {
+            if (monitor.isCanceled()) {
+                break;
+            }
+            try {
                 for (CubridView view : user.getViews(monitor)) {
-                    if (monitor.isCanceled())
+                    if (monitor.isCanceled()) {
                         break;
+                    }
                     sb.append(String.format("CREATE VCLASS %s;\n", wrapTable(view)));
                     if (!isMultiSchema) {
-                        sb.append(String.format(
-                                "call [change_view_owner](%s, %s) on class [db_root];\n",
+                        sb.append(String.format("call [change_view_owner](%s, %s) on class [db_root];\n",
                                 SQLUtils.quoteString(dataSource, view.getName()),
-                                SQLUtils.quoteString(dataSource, view.getSchema().getName())));
+                                SQLUtils.quoteString(dataSource, view.getSchema().getName())
+                        ));
                     }
                     sb.append(System.lineSeparator());
                 }
+            } catch (Exception e) {
+                settings.addError("View: Can't read list for user " + wrapString(user.getName()) + " - " + e.getMessage());
             }
-        } catch (DBException e) {
-            settings.addError("View List: Can't read view list - " + e.getMessage());
         }
     }
 
     public void buildViewQuerySpec(StringBuilder sb, List<CubridUser> users) {
-        try {
-            for (CubridUser user : users) {
-                if (monitor.isCanceled())
-                    break;
+        for (CubridUser user : users) {
+            if (monitor.isCanceled()) {
+                break;
+            }
+            try {
                 for (CubridView view : user.getViews(monitor)) {
-                    if (monitor.isCanceled())
+                    if (monitor.isCanceled()) {
                         break;
+                    }
                     appendViewAttributes(sb, view);
                 }
+            } catch (Exception e) {
+                settings.addError("View: Can't read attributes for user " + wrapString(user.getName()) + " - " + e.getMessage());
             }
-            for (CubridUser user : users) {
-                if (monitor.isCanceled())
-                    break;
+        }
+        for (CubridUser user : users) {
+            if (monitor.isCanceled()) {
+                break;
+            }
+            try {
                 for (CubridView view : user.getViews(monitor)) {
-                    if (monitor.isCanceled())
+                    if (monitor.isCanceled()) {
                         break;
+                    }
                     appendViewQuery(sb, view);
                 }
+            } catch (Exception e) {
+                settings.addError("View: Can't read query for user " + wrapString(user.getName()) + " - " + e.getMessage());
             }
-        } catch (Exception e) {
-            settings.addError("View List: Can't read view metadata - " + e.getMessage());
         }
     }
 
-    private void appendViewAttributes(StringBuilder sb, CubridView view) {
-        try {
-            Map<String, String> collationByAttr = repo.loadCollationByAttr(view);
-            @SuppressWarnings("unchecked")
-            List<CubridTableColumn> columns = (List<CubridTableColumn>) view.getAttributes(monitor);
+    private void appendViewAttributes(StringBuilder sb, CubridView view) throws DBException {
+        Map<String, String> collationByAttr = repo.loadCollationByAttr(view);
+        @SuppressWarnings("unchecked")
+        List<CubridTableColumn> columns = (List<CubridTableColumn>) view.getAttributes(monitor);
 
-            if (columns == null || columns.isEmpty()) {
-                return;
-            }
-
-            sb.append(String.format("ALTER VCLASS %s ADD ATTRIBUTE", wrapTable(view)));
-            for (CubridTableColumn column : columns) {
-                String collation = collationByAttr.get(column.getName());
-                sb.append(String.format("\n\t%s %s", wrapString(column.getName()), column.getFullTypeName()));
-                if (collation != null && !collation.equalsIgnoreCase("Not applicable")) {
-                    sb.append(String.format(" COLLATE %s", collation));
-                }
-                sb.append(",");
-            }
-            sb.deleteCharAt(sb.length() - 1);
-            sb.append(";\n\n");
-        } catch (Exception e) {
-            settings.addError(
-                    "View Attribute: Can't read view metadata for " + view.getName() + " - " + e.getMessage());
+        if (columns == null || columns.isEmpty()) {
+            return;
         }
+
+        sb.append(String.format("ALTER VCLASS %s ADD ATTRIBUTE", wrapTable(view)));
+        for (CubridTableColumn column : columns) {
+            String collation = collationByAttr.get(column.getName());
+            sb.append(String.format("\n\t%s %s", wrapString(column.getName()), column.getFullTypeName()));
+            if (collation != null && !collation.equalsIgnoreCase("Not applicable")) {
+                sb.append(String.format(" COLLATE %s", collation));
+            }
+            sb.append(",");
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        sb.append(";\n\n");
+
     }
 
-    private void appendViewQuery(StringBuilder sb, CubridView view) {
-        try {
-            String query = repo.loadCreateViewDDL(view);
-            if (query == null) {
-                return;
-            }
-            sb.append(String.format("ALTER VCLASS %s ADD QUERY %s;\n\n", wrapTable(view), query));
-        } catch (Exception e) {
-            settings.addError("View Query: Can't read view metadata for " + view.getName() + " - " + e.getMessage());
+    private void appendViewQuery(StringBuilder sb, CubridView view) throws DBException {
+        String query = repo.loadCreateViewDDL(view);
+        if (query == null) {
+            settings.addError("View: Could not read DDL for " + wrapTable(view) + ". Skipping query definition.");
+            return;
         }
+        sb.append(String.format("ALTER VCLASS %s ADD QUERY %s;\n\n", wrapTable(view), query));
     }
 
     public void buildIndex(StringBuilder sb, CubridTable table) {
@@ -498,12 +507,17 @@ public class CubridLoadDBSQLBuilder {
             }
 
             for (GenericTableIndex index : indexes) {
-                if (monitor.isCanceled())
+                if (monitor.isCanceled()) {
                     break;
+                }
                 if (index.isUnique()) {
                     continue;
                 }
                 List<GenericTableIndexColumn> cols = index.getAttributeReferences(monitor);
+                if (cols == null || cols.isEmpty()) {
+                    settings.addError("Index: No columns found for " + wrapString(index.getName()) + " on table " + wrapTable(table) + ".");
+                    continue;
+                }
 
                 StringBuilder colBuilder = new StringBuilder();
                 for (int i = 0; i < cols.size(); i++) {
@@ -519,18 +533,20 @@ public class CubridLoadDBSQLBuilder {
                         wrapString(index.getName()),
                         wrapTable(table),
                         colBuilder,
-                        isMultiSchema ? " WITH DEDUPLICATE=0" : ""));
+                        isMultiSchema ? " WITH DEDUPLICATE=0" : ""
+                ));
             }
         } catch (DBException e) {
-            settings.addError("Index List: Can't read index list for " + table.getName() + " - " + e.getMessage());
+            settings.addError("Index: Can't read list for table " + wrapTable(table) + " - " + e.getMessage());
         }
     }
 
     public void buildTrigger(StringBuilder sb, List<CubridUser> users) {
-        try {
-            for (CubridUser user : users) {
-                if (monitor.isCanceled())
-                    break;
+        for (CubridUser user : users) {
+            if (monitor.isCanceled()) {
+                break;
+            }
+            try {
                 @SuppressWarnings("unchecked")
                 List<CubridTrigger> triggers = (List<CubridTrigger>) user.getTriggers(monitor);
                 if (triggers == null || triggers.isEmpty()) {
@@ -538,65 +554,71 @@ public class CubridLoadDBSQLBuilder {
                 }
 
                 for (CubridTrigger trigger : triggers) {
-                    if (monitor.isCanceled())
+                    if (monitor.isCanceled()) {
                         break;
-                    String triggerUniqueName = isMultiSchema
-                            ? wrapString(trigger.getOwner().getName()) + "." + wrapString(trigger.getName())
-                            : wrapString(trigger.getName());
-
-                    sb.append(String.format(
-                            "CREATE TRIGGER %s \n  %s \n  PRIORITY %s \n  %s ",
-                            triggerUniqueName,
-                            trigger.getActive() ? "STATUS ACTIVE" : "STATUS INACTIVE",
-                            trigger.getPriority(),
-                            trigger.getActionTime()));
-
-                    if ("COMMIT".equals(trigger.getEvent()) || "ROLLBACK".equals(trigger.getEvent())) {
-                        sb.append(trigger.getEvent());
-                    } else {
-                        sb.append(trigger.getEvent());
-                        sb.append(" ON ").append(wrapTable(trigger.getTable()));
-                        if (trigger.getEvent().contains("UPDATE") && trigger.getTargetColumn() != null) {
-                            sb.append("(").append(wrapString(trigger.getTargetColumn())).append(")");
-                        }
                     }
+                    try {
+                        String triggerUniqueName = isMultiSchema
+                                ? wrapString(trigger.getOwner().getName()) + "." + wrapString(trigger.getName())
+                                : wrapString(trigger.getName());
 
-                    if (trigger.getCondition() != null) {
-                        sb.append("\nIF ").append(trigger.getCondition());
-                    }
-
-                    sb.append("\n  EXECUTE ");
-
-                    if ("REJECT".equals(trigger.getActionType())
-                            || "INVALIDATE TRANSACTION".equals(trigger.getActionType())) {
-                        sb.append(trigger.getActionType());
-                    } else if ("PRINT".equals(trigger.getActionType())) {
-                        sb.append(trigger.getActionType()).append(" ");
-                        sb.append(trigger.getActionDefinition() == null
-                                ? ""
-                                : SQLUtils.quoteString(dataSource, trigger.getActionDefinition()));
-                    } else {
-                        sb.append(trigger.getActionDefinition() == null ? "" : trigger.getActionDefinition());
-                    }
-
-                    if (trigger.getDescription() != null && !trigger.getDescription().isEmpty()) {
-                        sb.append(" COMMENT ").append(SQLUtils.quoteString(dataSource, trigger.getDescription()));
-                    }
-
-                    sb.append(";\n");
-
-                    if (!isMultiSchema) {
                         sb.append(String.format(
-                                "call [change_trigger_owner](%s, %s) on class [db_root];\n",
-                                SQLUtils.quoteString(dataSource, trigger.getName()),
-                                SQLUtils.quoteString(dataSource, trigger.getOwner().getName())));
-                    }
+                                "CREATE TRIGGER %s \n  %s \n  PRIORITY %s \n  %s ",
+                                triggerUniqueName,
+                                trigger.getActive() ? "STATUS ACTIVE" : "STATUS INACTIVE",
+                                trigger.getPriority(),
+                                trigger.getActionTime()
+                        ));
 
-                    sb.append(System.lineSeparator());
+                        if ("COMMIT".equals(trigger.getEvent()) || "ROLLBACK".equals(trigger.getEvent())) {
+                            sb.append(trigger.getEvent());
+                        } else {
+                            sb.append(trigger.getEvent());
+                            if (trigger.getTable() == null) {
+                                settings.addError("Trigger: Target table for " + wrapString(trigger.getName()) + " is null.");
+                                continue;
+                            }
+                            sb.append(" ON ").append(wrapTable(trigger.getTable()));
+                            if (trigger.getEvent().contains("UPDATE") && trigger.getTargetColumn() != null) {
+                                sb.append("(").append(wrapString(trigger.getTargetColumn())).append(")");
+                            }
+                        }
+
+                        if (trigger.getCondition() != null) {
+                            sb.append("\nIF ").append(trigger.getCondition());
+                        }
+
+                        sb.append("\n  EXECUTE ");
+
+                        if ("REJECT".equals(trigger.getActionType()) || "INVALIDATE TRANSACTION".equals(trigger.getActionType())) {
+                            sb.append(trigger.getActionType());
+                        } else if ("PRINT".equals(trigger.getActionType())) {
+                            sb.append(trigger.getActionType()).append(" ");
+                            sb.append(trigger.getActionDefinition() == null ? "" : SQLUtils.quoteString(dataSource, trigger.getActionDefinition()));
+                        } else {
+                            sb.append(trigger.getActionDefinition() == null ? "" : trigger.getActionDefinition());
+                        }
+
+                        if (trigger.getDescription() != null && !trigger.getDescription().isEmpty()) {
+                            sb.append(" COMMENT ").append(SQLUtils.quoteString(dataSource, trigger.getDescription()));
+                        }
+
+                        sb.append(";\n");
+
+                        if (!isMultiSchema) {
+                            sb.append(String.format("call [change_trigger_owner](%s, %s) on class [db_root];\n",
+                                    SQLUtils.quoteString(dataSource, trigger.getName()),
+                                    SQLUtils.quoteString(dataSource, trigger.getOwner().getName())));
+                        }
+
+                        sb.append(System.lineSeparator());
+                    } catch (Exception e) {
+                        settings.addError("Trigger: Can't generate " + wrapString(trigger.getName()) + " - " + e.getMessage());
+                    }
                 }
+            } catch (Exception e) {
+                settings.addError("Trigger: Can't read list for user " + wrapString(user.getName()) + " - " + e.getMessage());
             }
-        } catch (DBException e) {
-            settings.addError("Trigger List: Can't read trigger list - " + e.getMessage());
         }
     }
 
@@ -604,7 +626,7 @@ public class CubridLoadDBSQLBuilder {
         try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load data")) {
             String query = dataSource.wrapShardQuery("select * from " + wrapTable(table));
             try (JDBCPreparedStatement dbStat = session.prepareStatement(query);
-                    JDBCResultSet dbResult = dbStat.executeQuery()) {
+                JDBCResultSet dbResult = dbStat.executeQuery()) {
 
                 ResultSetMetaData metaData = dbResult.getMetaData();
                 int columnCount = metaData.getColumnCount();
@@ -616,20 +638,26 @@ public class CubridLoadDBSQLBuilder {
                     String name = metaData.getColumnName(i);
                     columnNames[i - 1] = name;
                     var attr = table.getAttribute(monitor, name);
-                    numericColumns[i - 1] = attr != null && attr.getDataKind() == DBPDataKind.NUMERIC;
+                    if (attr != null) {
+                        numericColumns[i - 1] = (attr.getDataKind() == DBPDataKind.NUMERIC);
+                    } else {
+                        numericColumns[i - 1] = false;
+                    }
                 }
 
                 sb.append("%class ").append(wrapTable(table)).append(" (");
                 for (int i = 1; i <= columnCount; i++) {
                     sb.append(wrapString(columnNames[i - 1]));
-                    if (i != columnCount)
+                    if (i != columnCount) {
                         sb.append(" ");
+                    }
                 }
                 sb.append(")\n");
 
                 while (dbResult.next()) {
-                    if (monitor.isCanceled())
+                    if (monitor.isCanceled()) {
                         break;
+                    }
                     for (int i = 1; i <= columnCount; i++) {
                         String value = JDBCUtils.safeGetString(dbResult, i);
                         if (value == null) {
@@ -640,15 +668,16 @@ public class CubridLoadDBSQLBuilder {
                             sb.append(SQLUtils.quoteString(dataSource, value));
                         }
 
-                        if (i != columnCount)
+                        if (i != columnCount) {
                             sb.append(" ");
+                        }
                     }
                     sb.append("\n");
                 }
                 sb.append("\n");
             }
         } catch (Exception e) {
-            settings.addError("Load Data: Can't read data for table " + table.getName() + " - " + e.getMessage());
+            settings.addError("Data: Can't read from table " + wrapTable(table) + " - " + e.getMessage());
         }
     }
 

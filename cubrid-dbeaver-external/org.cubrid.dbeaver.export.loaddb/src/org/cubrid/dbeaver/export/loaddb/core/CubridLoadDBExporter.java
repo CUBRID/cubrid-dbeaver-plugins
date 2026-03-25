@@ -43,7 +43,9 @@ public class CubridLoadDBExporter {
         String charset = settings.getCharset();
 
         for (CubridExportObjectInfo co : items) {
-            if (monitor.isCanceled()) return;
+            if (monitor.isCanceled()) {
+                return;
+            }
             if (!co.isExport()) {
                 continue;
             }
@@ -133,7 +135,9 @@ public class CubridLoadDBExporter {
         StringBuilder sb = new StringBuilder();
 
         for (CubridTable table : tables) {
-            if (monitor.isCanceled()) return;
+            if (monitor.isCanceled()) {
+                return;
+            }
             sql.buildIndex(sb, table);
         }
         if (sb.length() > 0) {
@@ -159,7 +163,9 @@ public class CubridLoadDBExporter {
         repo.saveFile(new StringBuilder(""), fileName, charset); 
 
         for (CubridTable table : tables) {
-            if (monitor.isCanceled()) return;
+            if (monitor.isCanceled()) {
+                return;
+            }
             sql.buildData(sb, table);
             
             if (sb.length() > FLUSH_THRESHOLD) {
