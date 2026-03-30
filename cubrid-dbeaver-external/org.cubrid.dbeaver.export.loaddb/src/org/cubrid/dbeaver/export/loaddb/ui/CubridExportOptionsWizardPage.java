@@ -34,7 +34,7 @@ public class CubridExportOptionsWizardPage extends WizardPage {
     private Button browse;
     private Button autoInc;
     private Button splitSchemaFile;
-    private boolean charsetLoaded = false;
+    private volatile boolean charsetLoaded = false;
 
     public CubridExportOptionsWizardPage(CubridLoadDBExportWizard wizard) {
         super("Export Configuration");
