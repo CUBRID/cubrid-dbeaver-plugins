@@ -200,6 +200,7 @@ public class CubridLoadDBSQLBuilder {
         }
 
         sb.append(" (");
+        int posBeforePartitions = sb.length();
         for (CubridPartition partition : partitions) {
             if (monitor.isCanceled()) {
                 break;
@@ -229,6 +230,11 @@ public class CubridLoadDBSQLBuilder {
             }
 
             sb.append(",");
+        }
+
+        if (sb.length() == posBeforePartitions) {
+            settings.addError("Partition: All partition values were null for table " + wrapTable(table) + ". Skipping.");
+            return;
         }
 
         sb.deleteCharAt(sb.length() - 1).append(" );\n\n");
