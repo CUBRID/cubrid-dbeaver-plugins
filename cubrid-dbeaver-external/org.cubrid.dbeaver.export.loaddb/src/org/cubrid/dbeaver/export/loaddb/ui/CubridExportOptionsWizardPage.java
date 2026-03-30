@@ -34,6 +34,7 @@ public class CubridExportOptionsWizardPage extends WizardPage {
     private Button browse;
     private Button autoInc;
     private Button splitSchemaFile;
+    private boolean charsetLoaded = false;
 
     public CubridExportOptionsWizardPage(CubridLoadDBExportWizard wizard) {
         super("Export Configuration");
@@ -177,6 +178,9 @@ public class CubridExportOptionsWizardPage extends WizardPage {
     }
 
     public void loadCharset() {
+        if (charsetLoaded) {
+            return;
+        }
         new AbstractJob("Load CUBRID Charset") {
             @Override
             protected IStatus run(DBRProgressMonitor monitor) {
@@ -209,7 +213,7 @@ public class CubridExportOptionsWizardPage extends WizardPage {
                         jdbcCombo.setText(result);
                     }
                 });
-                
+                charsetLoaded = true;
                 return Status.OK_STATUS;
             }
         }.schedule();

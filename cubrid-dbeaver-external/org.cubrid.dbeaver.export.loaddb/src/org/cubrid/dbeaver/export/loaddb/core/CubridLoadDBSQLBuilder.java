@@ -63,7 +63,7 @@ public class CubridLoadDBSQLBuilder {
             }
             try {
                 String isReuseOID = table.isReuseOID() ? "REUSE_OID" : "DONT_REUSE_OID";
-                sb.append(String.format("CREATE CLASS %s %s, %s%s;\n",
+                sb.append(String.format("CREATE CLASS %s %s%s%s;\n",
                         wrapTable(table),
                         isReuseOID,
                         table.getCollation() != null ? ", COLLATE " + table.getCollation().getName() : "",
@@ -201,7 +201,6 @@ public class CubridLoadDBSQLBuilder {
                 break;
             }
             String value = partition.getExpressionValues();
-
             sb.append("\n\tPARTITION ").append(wrapString(partition.getPartitionName()));
 
             if ("RANGE".equals(type)) {
@@ -209,23 +208,11 @@ public class CubridLoadDBSQLBuilder {
                 if ("MAXVALUE".equalsIgnoreCase(value)) {
                     sb.append("MAXVALUE");
                 } else {
-                    sb.append("(").append(DBPDataKind.NUMERIC == column.getDataKind() ? value : SQLUtils.quoteString(partition, value)).append(")");
+                    sb.append("(").append(value).append(")");
                 }
             } else {
-                sb.append("(");
-                if (DBPDataKind.NUMERIC == column.getDataKind()) {
-                    sb.append(value);
-                } else {
-                    String[] parts = value.split(",\\s*");
-                    for (int i = 0; i < parts.length; i++) {
-                        sb.append(SQLUtils.quoteString(dataSource, parts[i].trim()));
-
-                        if (i < parts.length - 1) {
-                            sb.append(", ");
-                        }
-                    }
-                }
-                sb.append(")");
+                sb.append(" VALUES IN ");
+                sb.append("(").append(value).append(")");
             }
 
             if (!CommonUtils.isEmpty(partition.getDescription())) {

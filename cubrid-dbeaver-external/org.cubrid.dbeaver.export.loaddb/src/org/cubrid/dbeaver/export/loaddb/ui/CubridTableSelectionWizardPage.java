@@ -132,23 +132,22 @@ public class CubridTableSelectionWizardPage extends WizardPage {
                     } else {
                         CubridDataSource ds = wizard.getSettings().getDataSource();
                         if (ds != null) {
-                            List<GenericSchema> users = null;
-                            for (int i = 0; i < 10; i++) {
-                                if (monitor.isCanceled())
-                                    return Status.CANCEL_STATUS;
-                                users = ds.getCubridUsers(monitor);
-                                if (users != null)
-                                    break;
-                                try {
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    return Status.CANCEL_STATUS;
-                                }
+                            List<GenericSchema> users = ds.getCubridUsers(monitor);
+                            if (users == null || users.isEmpty()) {
+                                UIUtils.syncExec(() -> {
+                                    if (emptyLabel != null && !emptyLabel.isDisposed()) {
+                                        emptyLabel.setText("Database is still loading. Please try again in a moment.");
+                                        stackLayout.topControl = emptyPanel;
+                                        stack.layout(true, true);
+                                    }
+                                });
+                                return Status.OK_STATUS;
                             }
-                            if (users != null) {
-                                for (GenericSchema schema : users) {
-                                    allTables.addAll(schema.getPhysicalTables(monitor));
+                            for (GenericSchema schema : users) {
+                                if (monitor.isCanceled()) {
+                                    return Status.CANCEL_STATUS;
                                 }
+                                allTables.addAll(schema.getPhysicalTables(monitor));
                             }
                         }
                     }
@@ -177,7 +176,7 @@ public class CubridTableSelectionWizardPage extends WizardPage {
 
                         stackLayout.topControl = hasTables ? tablePanel : emptyPanel;
                         if (!hasTables) {
-                            emptyLabel.setText("No tables found in this schema");
+                            emptyLabel.setText("No tables found in this schema.");
                         }
                         stack.layout(true, true);
                         updateState();
@@ -193,7 +192,7 @@ public class CubridTableSelectionWizardPage extends WizardPage {
                             stack.layout(true, true);
                         }
                     });
-                    return Status.CANCEL_STATUS;
+                    return Status.OK_STATUS;
                 }
             }
         };
