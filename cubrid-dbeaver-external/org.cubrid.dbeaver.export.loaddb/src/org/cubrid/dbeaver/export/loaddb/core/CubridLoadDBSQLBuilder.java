@@ -182,6 +182,16 @@ public class CubridLoadDBSQLBuilder {
         String type = partitions.get(0).getTableType();
         String key = partitions.get(0).getExpression();
 
+        if (CommonUtils.isEmpty(type)) {
+            settings.addError("Partition: Could not resolve partition type for table " + wrapTable(table) + ". Skipping.");
+            return;
+        }
+
+        if (CommonUtils.isEmpty(key)) {
+            settings.addError("Partition: Could not resolve partition key for table " + wrapTable(table) + ". Skipping.");
+            return;
+        }
+
         sb.append(String.format("ALTER CLASS %s PARTITION BY %s (%s)", wrapTable(table), type, wrapString(key)));
 
         if ("HASH".equals(type)) {
