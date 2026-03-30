@@ -45,21 +45,13 @@ public class CubridLoadDBExportWizard extends Wizard {
 
     @Override
     public boolean performCancel() {
-        boolean confirmed = MessageDialog.openConfirm(
-            getShell(),
-            "Cancel Export",
-            "Are you sure you want to cancel the export?\nAll settings will be lost."
-        );
+        boolean confirmed = MessageDialog.openConfirm(getShell(), "Cancel Export", "Are you sure you want to cancel the export?\nAll settings will be lost.");
         return confirmed;
     }
 
     @Override
     public boolean performFinish() {
-    	boolean confirmed = MessageDialog.openConfirm(
-            getShell(),
-            "Confirm Export",
-            "Are you sure you want to export the selected database objects?"
-        );
+        boolean confirmed = MessageDialog.openConfirm(getShell(), "Confirm Export", "Are you sure you want to export the selected database objects?");
         if (confirmed) {
             AbstractJob exportJob = new AbstractJob("CUBRID LoadDB Export") {
                 @Override
@@ -67,9 +59,9 @@ public class CubridLoadDBExportWizard extends Wizard {
                     try {
                         CubridLoadDBExporter export = new CubridLoadDBExporter(monitor, dataSource, settings, selectedSchema);
                         monitor.beginTask("Generating LoadDB file...", IProgressMonitor.UNKNOWN);
-                        
+
                         export.exportLoadDB();
-                        
+
                         if (monitor.isCanceled()) {
                             UIUtils.asyncExec(() -> {
                                 DBWorkbench.getPlatformUI().showWarningNotification("Export Cancelled", "The database export process was cancelled by the user.");
@@ -80,25 +72,26 @@ public class CubridLoadDBExportWizard extends Wizard {
 
                         List<String> errorMessages = settings.getErrorMessages();
                         boolean hasErrors = errorMessages != null && !errorMessages.isEmpty();
- 
+
                         UIUtils.asyncExec(() -> {
                             if (hasErrors) {
                                 DBWorkbench.getPlatformUI().showWarningNotification("Export Finished with Errors", "Check the log file for details.");
                             } else {
-                                DBWorkbench.getPlatformUI().showWarningNotification("Export Completed", "Database export finished successfully.");
+                                DBWorkbench.getPlatformUI().showNotification("Export Completed", "Database export finished successfully.", false, null);
                             }
                         });
 
-                        monitor.done(); 
+                        monitor.done();
                         return Status.OK_STATUS;
 
                     } catch (Exception e) {
-                        if (monitor != null) monitor.done(); 
-                        
+                        if (monitor != null) {
+                            monitor.done();
+                        }
                         UIUtils.asyncExec(() -> {
                             DBWorkbench.getPlatformUI().showError("Export Failed", "An error occurred during export.", e);
                         });
-                        return Status.CANCEL_STATUS;
+                        return new Status(IStatus.ERROR, "org.cubrid.dbeaver.export.loaddb", e.getMessage(), e);
                     }
                 }
             };
@@ -117,7 +110,7 @@ public class CubridLoadDBExportWizard extends Wizard {
     public CubridExportSettings getSettings() {
         return settings;
     }
-	
+
     protected CubridExportSettings createSettings() {
         return new CubridExportSettings();
     }

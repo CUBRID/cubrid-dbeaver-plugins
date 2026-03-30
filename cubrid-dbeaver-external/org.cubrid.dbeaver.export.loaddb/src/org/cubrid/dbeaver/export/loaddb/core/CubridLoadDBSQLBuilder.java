@@ -179,7 +179,7 @@ public class CubridLoadDBSQLBuilder {
             return;
         }
 
-        String type = partitions.get(0).getTableType().toUpperCase();
+        String type = partitions.get(0).getTableType();
         String key = partitions.get(0).getExpression();
 
         sb.append(String.format("ALTER CLASS %s PARTITION BY %s (%s)", wrapTable(table), type, wrapString(key)));
@@ -237,8 +237,10 @@ public class CubridLoadDBSQLBuilder {
                 CubridTable matchedTable = null;
                 for (CubridTable table : tables) {
                     if (className.equalsIgnoreCase(table.getName())) {
-                        matchedTable = table;
-                        break;
+                        if (!isMultiSchema || table.getSchema().equals(serial.getOwner())) {
+                            matchedTable = table;
+                            break;
+                        }
                     }
                 }
                 if (matchedTable == null) {

@@ -12,7 +12,7 @@ public class CubridSchemasFolderPropertyTester extends PropertyTester {
         if (!PROP_IS_SCHEMAS_FOLDER.equals(property) || !(receiver instanceof DBNDatabaseFolder folder)) {
             return false;
         }
-        String nodeName = folder.getNodeFullName();
+        String nodeName = folder.getName();
         return nodeName != null && nodeName.equalsIgnoreCase("Schemas");
     }
 }
