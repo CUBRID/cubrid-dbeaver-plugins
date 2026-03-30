@@ -195,6 +195,11 @@ public class CubridLoadDBSQLBuilder {
                 break;
             }
             String value = partition.getExpressionValues();
+            if (value == null) {
+                settings.addError("Partition: Missing expression value for partition " + wrapString(partition.getPartitionName()));
+                continue;
+            }
+
             sb.append("\n\tPARTITION ").append(wrapString(partition.getPartitionName()));
 
             if ("RANGE".equals(type)) {
