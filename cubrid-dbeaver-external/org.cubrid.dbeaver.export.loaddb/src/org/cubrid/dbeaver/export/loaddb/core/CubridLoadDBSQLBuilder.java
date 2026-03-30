@@ -181,12 +181,6 @@ public class CubridLoadDBSQLBuilder {
 
         String type = partitions.get(0).getTableType().toUpperCase();
         String key = partitions.get(0).getExpression();
-        CubridTableColumn column = (CubridTableColumn) table.getAttribute(monitor, key);
-
-        if (column == null) {
-            settings.addError("Partition: Key column " + wrapString(key) + " not found for table " + wrapTable(table));
-            return;
-        }
 
         sb.append(String.format("ALTER CLASS %s PARTITION BY %s (%s)", wrapTable(table), type, wrapString(key)));
 
