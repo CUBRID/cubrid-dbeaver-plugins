@@ -1,6 +1,6 @@
 [submodule "dbeaver"]
 	path = dbeaver
-	url = https://github.com/dbeaver/dbeaver.git
+	url = https://github.com/longhaseng52/dbeaver.git
 [submodule "dbeaver-common"]
 	path = dbeaver-common
 	url = https://github.com/dbeaver/dbeaver-common.git
