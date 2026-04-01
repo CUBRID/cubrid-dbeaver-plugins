@@ -49,7 +49,7 @@
         <category id="cubridImport" name="CUBRID"/>
         <wizard
             id="cubridImportConnection"
-            name="Import CUBRID Connection"
+            name="Import Connection"
             category="cubridImport"
             icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/file/import.svg"
             class="org.cubrid.dbeaver.importer.connection.CubridImportConnectionWizard"/>

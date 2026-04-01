@@ -1,7 +1,8 @@
 package org.cubrid.dbeaver.importer.connection;
 
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,26 +22,27 @@ public class CubridImportPrefsParser {
 
     public static List<CMDatabase> parse(Path prefsFile) throws Exception {
         Properties props = new Properties();
-        try (InputStream input = Files.newInputStream(prefsFile)) {
-            props.load(input);
+        try (InputStreamReader reader = new InputStreamReader(Files.newInputStream(prefsFile), StandardCharsets.UTF_8)) {
+            props.load(reader);
         }
 
-        String dbsXml = cleanPrefsXml(props.getProperty(KEY_DATABASES));
+        String dbsXml = props.getProperty(KEY_DATABASES)
+                .replace("\\n", "\n")
+                .replace("\\\"", "\"")
+                .replace("\\=", "=")
+                .replace("\\:", ":");
         List<CMDatabase> dbs = dbsXml == null ? List.of() : parseDatabasesXml(dbsXml);
 
         return dbs;
     }
 
-    private static String cleanPrefsXml(String xml) {
-        if (xml == null) {
-            return null;
-        }
-        return xml.replace("\\n", "\n").replace("\\\"", "\"").replace("\\=", "=").replace("\\:", ":");
-    }
-
     private static List<CMDatabase> parseDatabasesXml(String xml) throws Exception {
-        DocumentBuilderFactory builder = DocumentBuilderFactory.newInstance();
-        Document doc = builder.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        factory.setExpandEntityReferences(false);
+        Document doc = factory.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
         NodeList nodes = doc.getElementsByTagName("database");
 
         List<CMDatabase> dbs = new ArrayList<>();

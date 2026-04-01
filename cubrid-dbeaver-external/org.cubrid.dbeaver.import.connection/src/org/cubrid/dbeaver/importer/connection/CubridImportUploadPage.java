@@ -79,7 +79,7 @@ public class CubridImportUploadPage extends WizardPage {
             setPageComplete(false);
             return false;
         }
-        if (!file.getName().endsWith(".prefs")) {
+        if (!file.getName().toLowerCase().endsWith(".prefs")) {
             setErrorMessage("Please select a valid .prefs file.");
             setPageComplete(false);
             return false;

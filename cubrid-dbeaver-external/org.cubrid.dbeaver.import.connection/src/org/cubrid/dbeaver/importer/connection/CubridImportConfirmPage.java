@@ -9,7 +9,6 @@ import org.eclipse.jface.viewers.CheckboxTableViewer;
 import org.eclipse.jface.viewers.ICheckStateListener;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
-import org.eclipse.jface.wizard.IWizardPage;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
@@ -20,9 +19,10 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.jkiss.dbeaver.model.DBIcon;
+import org.jkiss.dbeaver.model.DBPImage;
 import org.jkiss.dbeaver.ui.DBeaverIcons;
 
-public class CubridImportConfirmPage extends WizardPage implements IWizardPage {
+public class CubridImportConfirmPage extends WizardPage {
 
     private final CubridImportConnectionWizard wizard;
     private CheckboxTableViewer viewer;
@@ -144,6 +144,8 @@ public class CubridImportConfirmPage extends WizardPage implements IWizardPage {
     }
 
     private static class DbLabelProvider extends LabelProvider implements ITableLabelProvider {
+        private static final DBPImage CUBRID_ICON = new DBIcon("cubrid", "platform:/plugin/org.cubrid.dbeaver.import.connection/icons/cubrid_icon.png");
+
         @Override
         public String getColumnText(Object element, int columnIndex) {
             CMDatabase db = (CMDatabase) element;
@@ -159,7 +161,7 @@ public class CubridImportConfirmPage extends WizardPage implements IWizardPage {
         @Override
         public Image getColumnImage(Object element, int columnIndex) {
             if (columnIndex == 0) {
-                return DBeaverIcons.getImage(DBIcon.TREE_DATABASE);
+                return DBeaverIcons.getImage(CUBRID_ICON);
             }
             return null;
         }

@@ -13,6 +13,7 @@ import org.eclipse.ui.IImportWizard;
 import org.eclipse.ui.IWorkbench;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
+import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
 import org.jkiss.dbeaver.model.connection.DBPDriver;
 import org.jkiss.dbeaver.registry.DataSourceDescriptor;
@@ -31,13 +32,23 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
 
     public CubridImportConnectionWizard() {
         setWindowTitle("Import CUBRID Connection");
-        registry = DBWorkbench.getPlatform().getWorkspace().getActiveProject().getDataSourceRegistry();
-        driver = DBWorkbench.getPlatform().getDataSourceProviderRegistry().findDriver("cubrid_jdbc");
+        initialize();
     }
 
     @Override
     public void init(IWorkbench workbench, IStructuredSelection selection) {
-        // Initialization is already done in the constructor
+        initialize();
+    }
+
+    private void initialize() {
+        if (registry != null) {
+            return;
+        }
+        DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
+        if (project != null) {
+            registry = project.getDataSourceRegistry();
+            driver = DBWorkbench.getPlatform().getDataSourceProviderRegistry().findDriver("cubrid_jdbc");
+        }
     }
 
     @Override
@@ -68,6 +79,7 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
                     log.error("Failed to create CUBRID connection", ex);
                 }
             }
+            registry.flushConfig();
             return true;
         }
         return false;
@@ -109,7 +121,7 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
         config.setHostPort(port);
         config.setDatabaseName(dbName);
         config.setUserName(user);
-        config.setUrl("jdbc:CUBRID:" + host + ":" + port + ":" + dbName + ":::");
+        config.setUrl("jdbc:cubrid:" + host + ":" + port + ":" + dbName + ":::");
 
         DataSourceDescriptor ds = new DataSourceDescriptor(registry, DataSourceDescriptor.generateNewId(driver), driver, config);
         ds.setName(dbName);
