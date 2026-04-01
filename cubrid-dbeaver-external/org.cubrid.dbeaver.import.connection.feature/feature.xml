@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="org.cubrid.dbeaver.import.connection.feature"
+      label="CUBRID Import Connection"
+      version="1.0.0"
+      provider-name="CUBRID">
+
+    <description>CUBRID Plugin for DBeaver for Import Connection.</description>
+    <copyright>CUBRID</copyright>
+
+    <plugin id="org.cubrid.dbeaver.import.connection" version="0.0.0"/>
+</feature>

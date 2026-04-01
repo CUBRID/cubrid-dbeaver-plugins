@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+    <extension point="org.eclipse.ui.commands">
+        <command id="cubridImportConnection" name="Import Cubrid Connection" description="Import Cubrid Connection"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commandImages">
+        <image commandId="cubridImportConnection" icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/file/import.svg"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.handlers">
+        <handler commandId="cubridImportConnection" class="org.cubrid.dbeaver.importer.connection.CubridImportConnectionHandler">
+            <enabledWhen>
+                <with variable="selection">
+                    <or>
+                        <count value="0"/>
+                        <iterate operator="and">
+                            <or>
+                                <instanceof value="org.jkiss.dbeaver.model.navigator.DBNProject"/>
+                                <instanceof value="org.jkiss.dbeaver.model.navigator.DBNProjectDatabases"/>
+                                <instanceof value="org.jkiss.dbeaver.model.navigator.DBNLocalFolder"/>
+                                <and>
+                                    <instanceof value="org.jkiss.dbeaver.model.navigator.DBNDataSource"/>
+                                    <adapt type="org.jkiss.dbeaver.model.DBPDataSourceContainer">
+                                        <test property="org.jkiss.dbeaver.core.datasourceContainer.driverId" value="cubrid_jdbc"/>
+                                    </adapt>
+                                </and>
+                            </or>
+                        </iterate>
+                    </or>
+                </with>
+            </enabledWhen>
+        </handler>
+    </extension>
+
+    <extension point="org.eclipse.ui.menus">
+        <menuContribution allPopups="false" locationURI="menu:org.jkiss.dbeaver.core.menu.newConnection?after=org.jkiss.dbeaver.core.new.connection">
+            <command commandId="cubridImportConnection"/>
+        </menuContribution>
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=org.jkiss.dbeaver.core.navigator.open.browser">
+            <command commandId="cubridImportConnection">
+                <visibleWhen checkEnabled="true"/>
+            </command>
+        </menuContribution>
+    </extension>
+
+    <extension point="org.eclipse.ui.importWizards">
+        <category id="cubridImport" name="CUBRID"/>
+        <wizard
+            id="cubridImportConnection"
+            name="Import CUBRID Connection"
+            category="cubridImport"
+            icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/file/import.svg"
+            class="org.cubrid.dbeaver.importer.connection.CubridImportConnectionWizard"/>
+    </extension>
+</plugin>
