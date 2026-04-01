@@ -26,14 +26,18 @@ public class CubridImportPrefsParser {
             props.load(reader);
         }
 
-        String dbsXml = props.getProperty(KEY_DATABASES)
+        String rawDbsXml = props.getProperty(KEY_DATABASES);
+        if (rawDbsXml == null) {
+            return List.of();
+        }
+
+        String dbsXml = rawDbsXml
                 .replace("\\n", "\n")
                 .replace("\\\"", "\"")
                 .replace("\\=", "=")
                 .replace("\\:", ":");
-        List<CMDatabase> dbs = dbsXml == null ? List.of() : parseDatabasesXml(dbsXml);
 
-        return dbs;
+        return parseDatabasesXml(dbsXml);
     }
 
     private static List<CMDatabase> parseDatabasesXml(String xml) throws Exception {

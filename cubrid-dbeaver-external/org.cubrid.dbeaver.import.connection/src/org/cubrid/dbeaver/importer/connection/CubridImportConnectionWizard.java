@@ -17,6 +17,7 @@ import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
 import org.jkiss.dbeaver.model.connection.DBPDriver;
 import org.jkiss.dbeaver.registry.DataSourceDescriptor;
+import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 
 public class CubridImportConnectionWizard extends Wizard implements IImportWizard {
@@ -41,9 +42,6 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
     }
 
     private void initialize() {
-        if (registry != null) {
-            return;
-        }
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
         if (project != null) {
             registry = project.getDataSourceRegistry();
@@ -61,8 +59,14 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
 
     @Override
     public boolean performFinish() {
+        if (registry == null || driver == null) {
+            MessageDialog.openError(getShell(), "Import Error", 
+                "Cannot proceed. Please ensure a project is active and the required driver is installed.");
+            return false;
+        }
         CMDatabase[] selected = confirmationPage.getCheckedDatabases();
-        boolean confirmed = MessageDialog.openConfirm(getShell(), "Confirm Import", "Are you sure you want to import the selected database connections?");
+        boolean confirmed = MessageDialog.openConfirm(getShell(), "Confirm Import",
+                "Are you sure you want to import the selected database connections?");
         if (confirmed) {
             for (CMDatabase db : selected) {
                 String host = db.host;
@@ -79,7 +83,9 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
                     log.error("Failed to create CUBRID connection", ex);
                 }
             }
-            registry.flushConfig();
+            if (registry != null) {
+                registry.flushConfig();
+            }
             return true;
         }
         return false;
