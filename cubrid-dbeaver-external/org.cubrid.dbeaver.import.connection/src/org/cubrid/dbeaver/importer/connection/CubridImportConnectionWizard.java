@@ -17,7 +17,6 @@ import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
 import org.jkiss.dbeaver.model.connection.DBPDriver;
 import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 
 public class CubridImportConnectionWizard extends Wizard implements IImportWizard {
@@ -60,14 +59,18 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
     @Override
     public boolean performFinish() {
         if (registry == null || driver == null) {
-            MessageDialog.openError(getShell(), "Import Error", 
+            MessageDialog.openError(getShell(), "Import Error",
                 "Cannot proceed. Please ensure a project is active and the required driver is installed.");
             return false;
         }
         CMDatabase[] selected = confirmationPage.getCheckedDatabases();
+        if (selected.length == 0) {
+            return true;
+        }
         boolean confirmed = MessageDialog.openConfirm(getShell(), "Confirm Import",
                 "Are you sure you want to import the selected database connections?");
         if (confirmed) {
+            List<String> failedImports = new ArrayList<>();
             for (CMDatabase db : selected) {
                 String host = db.host;
                 String port = db.port;
@@ -80,11 +83,17 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
                     DataSourceDescriptor dataSource = createCubridDataSource(host, port, dbName, user);
                     registry.addDataSource(dataSource);
                 } catch (Exception ex) {
-                    log.error("Failed to create CUBRID connection", ex);
+                    String identifier = dbName + " (" + host + ")";
+                    log.error("Failed to create CUBRID connection: " + identifier, ex);
+                    failedImports.add(identifier);
                 }
             }
             if (registry != null) {
                 registry.flushConfig();
+            }
+            if (!failedImports.isEmpty()) {
+                String errorMessage = "The following connections could not be imported:\n" + String.join("\n", failedImports);
+                MessageDialog.openWarning(getShell(), "Import Partial Success", errorMessage);
             }
             return true;
         }
