@@ -192,7 +192,8 @@ public class CubridLoadDBSQLBuilder {
             return;
         }
 
-        sb.append(String.format("ALTER CLASS %s PARTITION BY %s (%s)", wrapTable(table), type, wrapString(key)));
+        String formattedKey = key.contains("(") ? key : wrapString(key);
+        sb.append(String.format("ALTER CLASS %s PARTITION BY %s (%s)", wrapTable(table), type, formattedKey));
 
         if ("HASH".equals(type)) {
             sb.append(" PARTITIONS ").append(partitions.size()).append(";\n\n");
