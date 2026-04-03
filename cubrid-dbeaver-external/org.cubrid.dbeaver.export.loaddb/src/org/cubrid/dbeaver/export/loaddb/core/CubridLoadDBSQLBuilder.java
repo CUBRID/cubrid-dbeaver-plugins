@@ -566,22 +566,22 @@ public class CubridLoadDBSQLBuilder {
                                 ? wrapString(trigger.getOwner().getName()) + "." + wrapString(trigger.getName())
                                 : wrapString(trigger.getName());
 
+                        boolean isUserTrigger = "COMMIT".equals(trigger.getEvent()) || "ROLLBACK".equals(trigger.getEvent());
+                        if (!isUserTrigger && trigger.getTable() == null) {
+                            settings.addError("Trigger: Target table for " + wrapString(trigger.getName()) + " is null.");
+                            continue; 
+                        }
                         sb.append(String.format(
                                 "CREATE TRIGGER %s \n  %s \n  PRIORITY %s \n  %s ",
                                 triggerUniqueName,
                                 trigger.getActive() ? "STATUS ACTIVE" : "STATUS INACTIVE",
                                 trigger.getPriority(),
-                                trigger.getActionTime()
-                        ));
+                                trigger.getActionTime()));
 
-                        if ("COMMIT".equals(trigger.getEvent()) || "ROLLBACK".equals(trigger.getEvent())) {
+                        if (isUserTrigger) {
                             sb.append(trigger.getEvent());
                         } else {
                             sb.append(trigger.getEvent());
-                            if (trigger.getTable() == null) {
-                                settings.addError("Trigger: Target table for " + wrapString(trigger.getName()) + " is null.");
-                                continue;
-                            }
                             sb.append(" ON ").append(wrapTable(trigger.getTable()));
                             if (trigger.getEvent().contains("UPDATE") && trigger.getTargetColumn() != null) {
                                 sb.append("(").append(wrapString(trigger.getTargetColumn())).append(")");
