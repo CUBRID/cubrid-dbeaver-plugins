@@ -23,11 +23,10 @@ public class CubridLoadDBExporter {
     private List<CubridSequence> serials = new ArrayList<>();
 
     public CubridLoadDBExporter(
-        DBRProgressMonitor monitor,
-        CubridDataSource dataSource,
-        CubridExportSettings settings,
-        CubridUser selectedSchema
-    ) {
+            DBRProgressMonitor monitor,
+            CubridDataSource dataSource,
+            CubridExportSettings settings,
+            CubridUser selectedSchema) {
         this.monitor = monitor;
         this.settings = settings;
         this.repo = new CubridLoadDBRepository(monitor, dataSource, settings, selectedSchema);
@@ -160,22 +159,26 @@ public class CubridLoadDBExporter {
         final int FLUSH_THRESHOLD = 16 * 1024 * 1024; // 16 MB threshold
         String fileName = settings.getOutputFile(info);
         StringBuilder sb = new StringBuilder();
-        repo.saveFile(new StringBuilder(""), fileName, charset); 
+        repo.saveFile(new StringBuilder(""), fileName, charset);
+
+        Runnable flushAction = () -> {
+            repo.appendFile(sb, fileName, charset);
+            sb.setLength(0);
+        };
 
         for (CubridTable table : tables) {
             if (monitor.isCanceled()) {
                 return;
             }
-            sql.buildData(sb, table);
-            
+            sql.buildData(sb, flushAction, table);
+
             if (sb.length() > FLUSH_THRESHOLD) {
-                repo.appendFile(sb, fileName, charset);
-                sb.setLength(0);
+                flushAction.run();
             }
         }
 
         if (sb.length() > 0) {
-            repo.appendFile(sb, fileName, charset);
+            flushAction.run();
         }
     }
 }

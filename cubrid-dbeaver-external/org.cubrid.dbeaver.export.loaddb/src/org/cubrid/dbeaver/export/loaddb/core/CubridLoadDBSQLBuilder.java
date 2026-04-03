@@ -368,7 +368,12 @@ public class CubridLoadDBSQLBuilder {
                             StringBuilder refColsBuilder = new StringBuilder();
                             boolean foundPrimaryKey = false;
 
-                            for (GenericUniqueKey key : refTab.getConstraints(monitor)) {
+                            List<GenericUniqueKey> constraints = refTab.getConstraints(monitor);
+                            if (constraints == null) {
+                                settings.addError("Foreign Key: Could not resolve constraints for referenced table " + wrapTable(refTab) + ". Skipping.");
+                                continue;
+                            }
+                            for (GenericUniqueKey key : constraints) {
                                 if (key.getConstraintType() == DBSEntityConstraintType.PRIMARY_KEY) {
                                     List<GenericTableConstraintColumn> refCols = key.getAttributeReferences(monitor);
 
@@ -419,7 +424,11 @@ public class CubridLoadDBSQLBuilder {
                 break;
             }
             try {
-                for (CubridView view : user.getViews(monitor)) {
+                List<CubridView> views = user.getViews(monitor);
+                if (views == null) {
+                    continue;
+                }
+                for (CubridView view : views) {
                     if (monitor.isCanceled()) {
                         break;
                     }
@@ -444,7 +453,11 @@ public class CubridLoadDBSQLBuilder {
                 break;
             }
             try {
-                for (CubridView view : user.getViews(monitor)) {
+                List<CubridView> views = user.getViews(monitor);
+                if (views == null) {
+                    continue;
+                }
+                for (CubridView view : views) {
                     if (monitor.isCanceled()) {
                         break;
                     }
@@ -459,7 +472,11 @@ public class CubridLoadDBSQLBuilder {
                 break;
             }
             try {
-                for (CubridView view : user.getViews(monitor)) {
+                List<CubridView> views = user.getViews(monitor);
+                if (views == null) {
+                    continue;
+                }
+                for (CubridView view : views) {
                     if (monitor.isCanceled()) {
                         break;
                     }
@@ -626,7 +643,8 @@ public class CubridLoadDBSQLBuilder {
         }
     }
 
-    public void buildData(StringBuilder sb, CubridTable table) {
+    public void buildData(StringBuilder sb, Runnable flushAction, CubridTable table) {
+        final int FLUSH_THRESHOLD = 16 * 1024 * 1024; // 16 MB threshold
         try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Load data")) {
             String query = dataSource.wrapShardQuery("select * from " + wrapTable(table));
             try (JDBCPreparedStatement dbStat = session.prepareStatement(query);
@@ -638,15 +656,20 @@ public class CubridLoadDBSQLBuilder {
                 boolean[] numericColumns = new boolean[columnCount];
                 String[] columnNames = new String[columnCount];
 
-                for (int i = 1; i <= columnCount; i++) {
-                    String name = metaData.getColumnName(i);
-                    columnNames[i - 1] = name;
-                    var attr = table.getAttribute(monitor, name);
-                    if (attr != null) {
-                        numericColumns[i - 1] = (attr.getDataKind() == DBPDataKind.NUMERIC);
-                    } else {
-                        numericColumns[i - 1] = false;
+                try {
+                    for (int i = 1; i <= columnCount; i++) {
+                        String name = metaData.getColumnName(i);
+                        columnNames[i - 1] = name;
+                        var attr = table.getAttribute(monitor, name);
+                        if (attr != null) {
+                            numericColumns[i - 1] = (attr.getDataKind() == DBPDataKind.NUMERIC);
+                        } else {
+                            numericColumns[i - 1] = false;
+                        }
                     }
+                } catch (Exception e) {
+                    settings.addError("Data: Metadata resolution failed for " + wrapTable(table) + " - " + e.getMessage());
+                    return;
                 }
 
                 sb.append("%class ").append(wrapTable(table)).append(" (");
@@ -677,6 +700,10 @@ public class CubridLoadDBSQLBuilder {
                         }
                     }
                     sb.append("\n");
+
+                    if (sb.length() > FLUSH_THRESHOLD) {
+                        flushAction.run();
+                    }
                 }
                 sb.append("\n");
             }
