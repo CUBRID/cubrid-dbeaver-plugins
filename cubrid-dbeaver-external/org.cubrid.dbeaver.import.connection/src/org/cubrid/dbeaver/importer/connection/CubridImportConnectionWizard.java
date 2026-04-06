@@ -118,13 +118,16 @@ public class CubridImportConnectionWizard extends Wizard implements IImportWizar
     }
 
     private void parseSelectedFile() {
-        databases.clear();
+        databases = new ArrayList<>();
         parseError = null;
         if (selectedFile == null) {
             return;
         }
         try {
-            databases = CubridImportPrefsParser.parse(selectedFile);
+            List<CMDatabase> parsed = CubridImportPrefsParser.parse(selectedFile);
+            if (parsed != null) {
+                databases.addAll(parsed);
+            }
         } catch (Exception e) {
             parseError = e.toString();
         }

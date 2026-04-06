@@ -28,7 +28,7 @@ public class CubridImportPrefsParser {
 
         String rawDbsXml = props.getProperty(KEY_DATABASES);
         if (rawDbsXml == null) {
-            return List.of();
+            return new ArrayList<>();
         }
 
         String dbsXml = rawDbsXml
