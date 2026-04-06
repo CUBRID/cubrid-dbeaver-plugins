@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver LoadDB Export
+Bundle-SymbolicName: org.cubrid.dbeaver.export.loaddb;singleton:=true
+Bundle-Version: 1.0.0
+Bundle-Vendor: CUBRID
+Automatic-Module-Name: org.cubrid.dbeaver.export.loaddb
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Require-Bundle: org.jkiss.dbeaver.ext.cubrid,
+ org.jkiss.dbeaver.ext.generic,
+ org.jkiss.dbeaver.ui,
+ org.jkiss.dbeaver.ui.navigator

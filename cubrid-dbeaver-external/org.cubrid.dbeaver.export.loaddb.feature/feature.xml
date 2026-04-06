@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="org.cubrid.dbeaver.export.loaddb.feature"
+      label="CUBRID Export LoadDB"
+      version="1.0.0"
+      provider-name="CUBRID">
+
+    <description>CUBRID Plugin for DBeaver for LoadDB export.</description>
+    <copyright>CUBRID</copyright>
+
+    <plugin id="org.cubrid.dbeaver.export.loaddb" version="0.0.0"/>
+</feature>
