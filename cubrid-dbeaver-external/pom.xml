@@ -21,6 +21,8 @@
         <module>org.cubrid.dbeaver.export.excel.feature</module>
         <module>org.cubrid.dbeaver.export.loaddb</module>
         <module>org.cubrid.dbeaver.export.loaddb.feature</module>
+        <module>org.cubrid.dbeaver.import.connection</module>
+        <module>org.cubrid.dbeaver.import.connection.feature</module>
     </modules>
 
     <repositories>
