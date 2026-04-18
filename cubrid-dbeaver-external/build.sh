@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Configuration
 REPO_SOURCE="org.cubrid.dbeaver.repository/target/repository"
-VERSION=$(grep -m 1 "<version>" pom.xml | sed 's/.*<version>\(.*\)<\/version>.*/\1/' | xargs)
+VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 OUTPUT_DIR="p2-site-plugin"
 
 echo "Building CUBRID DBeaver plugins version ${VERSION}..."
