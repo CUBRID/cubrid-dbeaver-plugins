@@ -29,5 +29,10 @@ rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # Copy the generated repository from the repository module
-cp -R "$REPO_SOURCE/"* "$OUTPUT_DIR/"
-echo "P2 Repository generated."
+if [ -d "$REPO_SOURCE" ]; then
+    cp -R "$REPO_SOURCE/"* "$OUTPUT_DIR/"
+    echo "P2 Repository generated."
+else
+    echo "ERROR: Repository source not found at ${REPO_SOURCE}"
+    exit 1
+fi
