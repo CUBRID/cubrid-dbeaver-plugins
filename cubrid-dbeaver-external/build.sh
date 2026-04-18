@@ -14,13 +14,6 @@ mvn clean package -DskipTests \
   -Djdk.xml.totalEntitySizeLimit=0 \
   -Djdk.xml.maxOccurLimit=0 \
   -Djdk.xml.maxParameterEntitySizeLimit=0 \
-  -Djdk.xml.maxElementContentWhitespaceLimit=0
-
-mvn clean package -DskipTests \
-  -Djdk.xml.maxGeneralEntitySizeLimit=0 \
-  -Djdk.xml.totalEntitySizeLimit=0 \
-  -Djdk.xml.maxOccurLimit=0 \
-  -Djdk.xml.maxParameterEntitySizeLimit=0 \
   -Djdk.xml.maxElementContentWhitespaceLimit=0 || { echo "ERROR: Maven build failed."; exit 1; }
 
 # Prepare output directory
