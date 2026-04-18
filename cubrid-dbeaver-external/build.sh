@@ -16,10 +16,12 @@ mvn clean package -DskipTests \
   -Djdk.xml.maxParameterEntitySizeLimit=0 \
   -Djdk.xml.maxElementContentWhitespaceLimit=0
 
-if [ $? -ne 0 ]; then
-    echo "ERROR: Maven build failed."
-    exit 1
-fi
+mvn clean package -DskipTests \
+  -Djdk.xml.maxGeneralEntitySizeLimit=0 \
+  -Djdk.xml.totalEntitySizeLimit=0 \
+  -Djdk.xml.maxOccurLimit=0 \
+  -Djdk.xml.maxParameterEntitySizeLimit=0 \
+  -Djdk.xml.maxElementContentWhitespaceLimit=0 || { echo "ERROR: Maven build failed."; exit 1; }
 
 # Prepare output directory
 echo "Cleaning old site and preparing ${OUTPUT_DIR}..."
