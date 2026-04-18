@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Configuration
 REPO_SOURCE="org.cubrid.dbeaver.repository/target/repository"
