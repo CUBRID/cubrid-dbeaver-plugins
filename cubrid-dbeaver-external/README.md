@@ -44,29 +44,20 @@ During installation, you can choose to install all available modules or select o
 To build the plugin and generate an update site for distribution:
 
 ### 1. Build Requirements
-- Eclipse IDE
 - Java 21
 - Maven 3.8+
-- DBeaver plugin dependencies
 
-### 2. Create an Update Site Project
-- In Eclipse, go to **File → New → Project... → Plug-in Development → Update Site Project...**.
-- Give your project a name (e.g., `cubrid-dbeaver-update-site`) and click **Finish**.
+### 2. Build Process
+The project includes a build.sh script that automates the Maven build and organizes the artifacts.
 
-### 3. Configure the Update Site
-- The project will generate and open a `site.xml` file in the Update Site Map editor.
-- In the **Site Map** tab, click **Add Feature...** and select the CUBRID features you want to include (e.g., `org.cubrid.dbeaver.export.excel.feature`, `org.cubrid.dbeaver.export.loaddb.feature`).
+**Execute the build**: ./build.sh
 
-### 4. Build the Site
-- Save the `site.xml` file.
-- Click **Build All** on the right side of the `site.xml` editor (Site Map tab).
-- This process generates the distribution files in the Update Site project folder:
-  - `content.jar`
-  - `artifacts.jar`
-  - `features/` (directory)
-  - `plugins/` (directory)
-  - `site.xml`
+### 3. Artifact Folder
+Once the script completes, a new directory named p2-site-plugin/ will be created in the root folder.
+This folder contains the generated P2 repository (Update Site).
 
-### 5. Hosting and Distribution
-- **Upload** the generated folder (containing the files mentioned above) to the web server.
+**Usage**: This directory can be used directly in DBeaver via Install New Software -> Add -> Local to test the plugin.
+
+### 4. Hosting and Distribution
+- **Upload** the artifact folder to the web server.
 - Users can then install the plugin in DBeaver using the steps in the **Installation** section, replacing the URL with the newly hosted URL.
