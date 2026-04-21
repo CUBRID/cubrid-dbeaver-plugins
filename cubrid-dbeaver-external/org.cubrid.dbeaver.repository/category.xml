@@ -1,18 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
    <feature id="org.cubrid.dbeaver.export.excel.feature" version="0.0.0">
-      <category name="CUBRID Export Plugin"/>
+      <category name="CUBRID Plugin"/>
    </feature>
    <feature id="org.cubrid.dbeaver.export.loaddb.feature" version="0.0.0">
-      <category name="CUBRID Export Plugin"/>
+      <category name="CUBRID Plugin"/>
    </feature>
    <feature id="org.cubrid.dbeaver.import.connection.feature" version="0.0.0">
-      <category name="CUBRID Import Plugin"/>
+      <category name="CUBRID Plugin"/>
    </feature>
-   <category-def name="CUBRID Export Plugin" label="CUBRID Export Plugin">
-      <description>CUBRID Plugin for DBeaver including Excel export and LoadDB export.</description>
-   </category-def>
-   <category-def name="CUBRID Import Plugin" label="CUBRID Import Plugin">
-      <description>CUBRID Import Plugin for DBeaver</description>
+   <category-def name="CUBRID Plugin" label="CUBRID Plugin">
+      <description>CUBRID Plugin for DBeaver including Excel export, LoadDB export and Connection import.</description>
    </category-def>
 </site>
