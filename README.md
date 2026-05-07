@@ -4,7 +4,7 @@ The **cubrid-dbeaver-plugins** develops plugins and tools to enhance [CUBRID](ht
 
 ## cubrid-dbeaver-external
 This is a plugin for DBeaver that adds extended features for CUBRID databases, such as Excel export functionality. 
-For a detailed list of features and installation instructions, please refer to the [README](cubrid-dbeaver-external/README.md).
+For a detailed list of features and installation instructions, please refer to the [README](cubrid-dbeaver-external/README.md) and [Manual](https://github.com/CUBRID/cubrid-dbeaver-plugins/wiki)
 
 ## cubrid-enabler-cloudbeaver
 This tool is designed to enable CUBRID support in the CloudBeaver Community Edition. After installing [CloudBeaver via Docker](https://hub.docker.com/r/dbeaver/cloudbeaver), 

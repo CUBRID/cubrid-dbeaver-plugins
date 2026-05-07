@@ -59,8 +59,9 @@ public class ExcelGenericStyle extends ExcelMainStyle {
     public void generateTableDetailSheets(CubridTable table) throws DBException {
     	String tableName = getFullTableName(table);
         String sheetName = getUniqueSheetName(tableName);
+        String safeSheetName = getSafeSheetName(sheetName);
 
-    	Sheet tableSheet = getWorkbook().createSheet(sheetName);
+        Sheet tableSheet = getWorkbook().createSheet(safeSheetName);
         applySheetDimensions(tableSheet, 18, 20, 13, 13, 11, 11, 11, 20);
 
     	// === Row 1 ===

@@ -20,8 +20,8 @@ public class CubridImportUploadPage extends WizardPage {
 
     public CubridImportUploadPage(CubridImportConnectionWizard wizard) {
         super("Upload the file");
-        setTitle("Select CUBRID Preferences");
-        setDescription("Select CUBRID Manager/Admin .prefs file to import connections");
+        setTitle("Select CUBRID Manager/Admin .prefs file to import connections");
+        setDescription("CA/CM prefs file : com.cubrid.cubridmanager.ui.prefs or com.cubrid.cubridquery.ui.prefs in $workspace/.metadata/.plugins/org.eclipse.core.runtime");
         this.wizard = wizard;
     }
 

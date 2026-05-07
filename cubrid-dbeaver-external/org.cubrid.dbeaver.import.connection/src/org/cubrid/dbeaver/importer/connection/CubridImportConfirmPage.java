@@ -104,6 +104,12 @@ public class CubridImportConfirmPage extends WizardPage {
         List<CMDatabase> dbs = wizard.getDatabases();
         viewer.setInput(dbs);
 
+        if (!dbs.stream().anyMatch(db -> db.isQueryModePrefs)) {
+            setDescription("Select the databases you want to import. Note: com.cubrid.cubridmanager.ui.prefs is not support port information, so it will be set to 33000.");
+        } else {
+            setDescription("Select the databases you want to import.");
+        }
+
         boolean hasRows = !dbs.isEmpty();
         viewer.setAllChecked(false);
         selectAllCheckbox.setEnabled(hasRows);

@@ -56,8 +56,9 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
     public void generateTableDetailSheets(CubridTable table) throws DBException {
         String tableName = getFullTableName(table);
         String sheetName = getUniqueSheetName(tableName);
+        String safeSheetName = getSafeSheetName(sheetName);
 
-        Sheet tableSheet = getWorkbook().createSheet(sheetName);
+        Sheet tableSheet = getWorkbook().createSheet(safeSheetName);
         applySheetDimensions(tableSheet, 18, 20, 13, 9, 9, 9, 10, 29);
 
         // === Row 1 ===
@@ -182,5 +183,6 @@ public class ExcelSimpleStyle extends ExcelMainStyle {
         int numLines = ddl.split("\n").length;
         tableSheet.getRow(rowIndex).setHeightInPoints((numLines + 1) * tableSheet.getDefaultRowHeightInPoints());
     }
+    
 }
 

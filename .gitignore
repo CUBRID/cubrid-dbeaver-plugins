@@ -79,3 +79,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+
+#build output
+cubrid-dbeaver-external/p2-site-plugin/
+cubrid-dbeaver-external/CUBRID-DBeaver-Plugins-*.zip

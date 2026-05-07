@@ -56,16 +56,17 @@ public class CubridImportPrefsParser {
             String brokerIp = e.getAttribute("brokerIp");
             String brokerPort = e.getAttribute("brokerPort");
             String address = e.getAttribute("address");
-            String port = e.getAttribute("port");
 
             CMDatabase db = new CMDatabase();
 
             if (notBlank(brokerIp) && notBlank(brokerPort)) {
                 db.host = brokerIp.trim();
                 db.port = brokerPort.trim();
+                db.isQueryModePrefs = true;
             } else {
                 db.host = address != null ? address.trim() : "";
-                db.port = port != null ? port.trim() : "";
+                db.port = "33000";
+                db.isQueryModePrefs = false;
             }
 
             db.dbName = e.getAttribute("dbName");
@@ -87,5 +88,6 @@ public class CubridImportPrefsParser {
         public String port;
         public String dbName;
         public String dbUser;
+        public boolean isQueryModePrefs;
     }
 }
