@@ -7,7 +7,7 @@ set -euo pipefail
 REPO_SOURCE=${SHELL_DIR}/org.cubrid.dbeaver.repository/target/repository
 VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 OUTPUT_DIR=${SHELL_DIR}/p2-site-plugin
-PACKAGE_NAME=CUBRID-DBeaver-Plugins-${VERSION}.zip
+PACKAGE_NAME=CUBRID-DBeaver-external-${VERSION}.zip
 
 echo "Building CUBRID DBeaver plugins version ${VERSION}..."
 cd ${SHELL_DIR}
