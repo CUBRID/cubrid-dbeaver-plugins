@@ -34,7 +34,7 @@ if [ -d "$REPO_SOURCE" ]; then
     if [ -f "${SHELL_DIR}/${PACKAGE_NAME}" ]; then
         rm -f "${SHELL_DIR}/${PACKAGE_NAME}"
     fi
-    cd ${OUTPUT_DIR} && zip -r ${SHELL_DIR}/${PACKAGE_NAME} . -q
+    cd "${OUTPUT_DIR}" && zip -r "${SHELL_DIR}/${PACKAGE_NAME}" . -q
     echo "P2 Repository zipped to ${SHELL_DIR}/${PACKAGE_NAME}."
 else
     echo "ERROR: Repository source not found at ${REPO_SOURCE}"

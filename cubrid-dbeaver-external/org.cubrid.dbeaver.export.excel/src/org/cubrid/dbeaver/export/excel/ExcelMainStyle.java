@@ -205,9 +205,9 @@ public abstract class ExcelMainStyle {
     protected String getSafeSheetName(String name) {
         if (name == null) return "Sheet";
 
-        String safeName = name.replaceAll("[\\\\/\\?\\*\\:\\[\\]]", "_")
-                              .replaceAll("[\\p{Cntrl}]", "_")
-                              .replace("'", "");
+        String safeName = name.replaceAll("[\\\\/\\?\\*\\:\\[\\]]", "-")
+                              .replaceAll("[\\p{Cntrl}]", "-")
+                              .replace("'", "-");
 
         if (safeName.trim().isEmpty()) {
             safeName = "UnknownTable_" + String.valueOf(fileNum);
