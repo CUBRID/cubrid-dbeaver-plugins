@@ -33,9 +33,11 @@ During installation, you can choose to install all available modules or select o
 ### Install from Update Site
 1. Open **DBeaver**.
 2. Go to **Help → Install New Software...**.
-3. Click **Add...** and enter the plugin update site URL: `https://cam.buabu.duckdns.org/cam/`
+3. Click **Add...** and enter the plugin update site URL: `https://ftp.cubrid.org/cubrid_labs/cubrid-dbeaver-external/latest/`
 4. Select the desired CUBRID features from the list.
 5. Click **Next** and follow the prompts to complete the installation.
+
+Please refer to the [Wiki page](https://github.com/CUBRID/cubrid-dbeaver-plugins/wiki) for detailed usage instructions.
 
 ---
 

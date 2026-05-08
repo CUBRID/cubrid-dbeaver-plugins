@@ -37,6 +37,7 @@ public abstract class ExcelMainStyle {
     private final DBRProgressMonitor monitor;
     private final String dateString;
     private final String filePath;
+    private int fileNum = 0;
 
     public ExcelMainStyle(DBRProgressMonitor monitor, CubridDataSource dataSource, String filePath) {
         this.monitor = monitor;
@@ -200,4 +201,20 @@ public abstract class ExcelMainStyle {
 
         return name;
     }
+    
+    protected String getSafeSheetName(String name) {
+        if (name == null) return "Sheet";
+
+        String safeName = name.replaceAll("[\\\\/\\?\\*\\:\\[\\]]", "-")
+                              .replaceAll("[\\p{Cntrl}]", "-")
+                              .replace("'", "-");
+
+        if (safeName.trim().isEmpty()) {
+            safeName = "UnknownTable_" + String.valueOf(fileNum);
+            fileNum++;
+        }
+
+        return safeName;
+    }
 }
+
